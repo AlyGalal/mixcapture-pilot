@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import Darwin
 
 /// Runs the actual bundled model, not a mocked transcript. Inputs are public research/sample audio.
 @main
@@ -16,6 +17,7 @@ struct WhisperSmoke {
     }
 
     static func main() async throws {
+        setbuf(stdout, nil)
         let audio = URL(fileURLWithPath: CommandLine.arguments[1])
         let aac = URL(fileURLWithPath: CommandLine.arguments[2])
         let first = try await LocalTranscriber.transcribe(audioURL: audio, locale: .mixedArabicEnglish)

@@ -1,0 +1,17 @@
+name: Probe local mixed-language models
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/benchmark-whisper.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: whisper-probe-observations
+          path: build/probe/results.log

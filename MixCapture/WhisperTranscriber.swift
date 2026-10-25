@@ -19,7 +19,12 @@ actor WhisperTranscriber {
     private static let shared = WhisperTranscriber()
 
     static var modelURL: URL? {
-        Bundle.main.url(forResource: modelResource, withExtension: "bin")
+#if WHISPER_PROBE
+        if let path = ProcessInfo.processInfo.environment["WHISPER_MODEL_PATH"] {
+            return URL(fileURLWithPath: path)
+        }
+#endif
+        return Bundle.main.url(forResource: modelResource, withExtension: "bin")
     }
 
     enum Failure: LocalizedError {
@@ -135,8 +140,13 @@ actor WhisperTranscriber {
         params.abort_callback_user_data = Unmanaged.passUnretained(flag).toOpaque()
 
         // Initial prompt = existing English glossary words only (vocabulary bias, no instructions).
-        let prompt = glossary.joined(separator: ", ")
-        let code: Int32 = "auto".withCString { language -> Int32 in
+        var prompt = glossary.joined(separator: ", ")
+        var languageChoice = "auto"
+#if WHISPER_PROBE
+        if ProcessInfo.processInfo.environment["WHISPER_PROBE_PROMPT"] == "off" { prompt = "" }
+        languageChoice = ProcessInfo.processInfo.environment["WHISPER_PROBE_LANGUAGE"] ?? "auto"
+#endif
+        let code: Int32 = languageChoice.withCString { language -> Int32 in
             prompt.withCString { initialPrompt -> Int32 in
                 // Both C strings and the flag stay alive for the whole synchronous whisper_full call.
                 params.language = language
