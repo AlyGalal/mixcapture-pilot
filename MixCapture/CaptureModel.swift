@@ -17,16 +17,23 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
         case failed(String)
     }
 
+    struct PrepareNote {
+        let text: String
+        let isError: Bool
+    }
+
     static let shared = CaptureModel()
     /// A queued start (e.g. from Back Tap) that never reached the foreground expires,
     /// so the app does not start recording unexpectedly much later.
     private static let pendingStartLifetime: TimeInterval = 120
 
     var records: [CaptureRecord] = []
-    var selectedLocale: PilotLocale = .arabicEgypt
+    var selectedLocale: PilotLocale = .mixedArabicEnglish
     var selectedCaseID: String? = TestCase.all.first?.id
     var assetReports: [PilotLocale: LocalTranscriber.AssetReport] = [:]
     var preparingLocale: PilotLocale?
+    /// Last Apple Prepare outcome per locale, shown next to its button.
+    var prepareNotes: [PilotLocale: PrepareNote] = [:]
     var playingID: UUID?
     var storageWarning: String?
     private(set) var activeRecord: CaptureRecord?
@@ -293,12 +300,18 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
     func prepare(_ locale: PilotLocale) {
         guard preparingLocale == nil else { return }
         preparingLocale = locale
+        prepareNotes[locale] = nil
         Task {
             do {
-                assetReports[locale] = try await LocalTranscriber.prepareAssets(for: locale)
-                outcome = .saved("assets \(locale.rawValue) جاهزة للتفريغ المحلي.")
+                let report = try await LocalTranscriber.prepareAssets(for: locale)
+                assetReports[locale] = report
+                let message = "assets \(locale.rawValue) جاهزة للتفريغ المحلي (resolved \(report.resolved ?? "?"), \(report.status))."
+                prepareNotes[locale] = PrepareNote(text: message, isError: false)
+                outcome = .saved(message)
             } catch {
-                outcome = .failed("تعذر تجهيز \(locale.rawValue): \(error.localizedDescription)")
+                let message = "تعذر تجهيز \(locale.rawValue): \(error.localizedDescription)"
+                prepareNotes[locale] = PrepareNote(text: message, isError: true)
+                outcome = .failed(message)
                 assetReports[locale] = await LocalTranscriber.assetReport(for: locale)
             }
             preparingLocale = nil

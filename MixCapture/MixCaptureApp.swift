@@ -96,17 +96,18 @@ struct ContentView: View {
                 .buttonStyle(.borderedProminent)
             }
 
-            Picker("لغة التفريغ (locale)", selection: $model.selectedLocale) {
-                Text("عربي ar-EG").tag(PilotLocale.arabicEgypt)
-                Text("English en-US").tag(PilotLocale.englishUS)
+            Picker("محرك التفريغ (engine)", selection: $model.selectedLocale) {
+                ForEach(PilotLocale.allCases) { choice in
+                    Text(choice.label).tag(choice)
+                }
             }
-            .pickerStyle(.segmented)
+            .pickerStyle(.menu)
 
             if let warning = model.storageWarning {
                 Text(warning).foregroundStyle(.orange)
             }
         } footer: {
-            Text("كل تفريغ يستخدم locale واحدة. en-US للمقارنة فقط؛ لا ادعاء لدقة bilingual تلقائية.")
+            Text("Mixed Arabic+English يستخدم Whisper محلياً للغتين. خيارات Apple للمقارنة على نفس الصوت. راجع الكلمات والأرقام قبل حفظها كمصروف أو تذكير.")
         }
     }
 
@@ -133,31 +134,53 @@ struct ContentView: View {
         Section {
             LabeledContent("Device", value: model.deviceDescription)
             LabeledContent("OS", value: model.osDescription)
-            LabeledContent("Engine", value: LocalTranscriber.engineName)
+            LabeledContent("Engine", value: LocalTranscriber.engineLabel(for: model.selectedLocale))
             ForEach(PilotLocale.allCases) { locale in
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(locale.rawValue).font(.headline)
+                    Text(locale.label).font(.headline)
                     if let report = model.assetReports[locale] {
-                        Text("resolved: \(report.resolved ?? "غير مدعوم") · assets: \(report.status)")
-                            .font(.callout)
+                        if locale == .mixedArabicEnglish {
+                            Text("\(report.resolved ?? "?") · bundled model ggml-small-q5_1: \(report.status)")
+                                .font(.callout)
+                                .foregroundStyle(report.status == "installed" ? Color.primary : Color.red)
+                        } else {
+                            Text("resolved: \(report.resolved ?? "غير مدعوم") · assets: \(report.status)")
+                                .font(.callout)
+                        }
                     } else {
                         Text("لم يتم الفحص بعد").font(.callout).foregroundStyle(.secondary)
                     }
                 }
                 .accessibilityElement(children: .combine)
             }
-            Button("Prepare local Arabic (تنزيل assets العربية)") { model.prepare(.arabicEgypt) }
-                .disabled(model.preparingLocale != nil)
-            Button("Prepare en-US (للمقارنة)") { model.prepare(.englishUS) }
-                .disabled(model.preparingLocale != nil)
-            if let preparing = model.preparingLocale {
-                ProgressView("جاري تجهيز \(preparing.rawValue)…")
+            Text("Whisper جاهز داخل التطبيق (~190 MB)، بلا تنزيل أو اتصال أثناء التفريغ. قد يستغرق وقتاً أطول من Apple؛ سيظهر زمن المعالجة مع النتيجة.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            ForEach([PilotLocale.arabicEgypt, PilotLocale.englishUS]) { locale in
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Button("Prepare \(locale.label)") { model.prepare(locale) }
+                            .buttonStyle(.bordered)
+                            .disabled(model.preparingLocale != nil)
+                        if model.preparingLocale == locale {
+                            ProgressView()
+                        }
+                    }
+                    if model.preparingLocale == locale {
+                        Text("جاري تجهيز \(locale.rawValue)…").font(.callout).foregroundStyle(.secondary)
+                    } else if let note = model.prepareNotes[locale] {
+                        Text(note.text)
+                            .font(.callout)
+                            .foregroundStyle(note.isError ? Color.red : Color.green)
+                    }
+                }
             }
             Button("تحديث حالة assets") { model.refreshAssetStatus() }
+                .buttonStyle(.bordered)
         } header: {
             Text("المحرك المحلي (local engine)")
         } footer: {
-            Text("التنزيل يحدث فقط عند الضغط على Prepare. التفريغ على الجهاز فقط، بدون cloud أو رفع.")
+            Text("تنزيل assets الخاصة بـApple يحدث فقط عند الضغط على Prepare Apple. Whisper لا ينزّل شيئاً. التفريغ على الجهاز فقط، بدون cloud أو رفع.")
         }
     }
 
@@ -210,6 +233,15 @@ struct RecordRow: View {
             parts.append("processing \(seconds.formatted(.number.precision(.fractionLength(1)))) s")
         }
         if record.wasInterrupted { parts.append("interrupted") }
+        return parts.joined(separator: " · ")
+    }
+
+    private func snapshotDetails(_ snapshot: TranscriptSnapshot) -> String {
+        var parts = [snapshot.engine ?? "engine ?", "transcript locale \(snapshot.resolvedLocale ?? "?")"]
+        if let seconds = snapshot.processingSeconds {
+            parts.append("processing \(seconds.formatted(.number.precision(.fractionLength(1)))) s")
+        }
+        parts.append("تقييم: \(snapshot.manualAssessment.rawValue)")
         return parts.joined(separator: " · ")
     }
 
@@ -277,6 +309,18 @@ struct RecordRow: View {
                     Text("needs work").tag(ManualAssessment.needsWork)
                 }
                 .pickerStyle(.segmented)
+            }
+
+            if let history = record.transcriptHistory, !history.isEmpty {
+                DisclosureGroup("نتائج سابقة محفوظة (\(history.count))") {
+                    ForEach(Array(history.enumerated().reversed()), id: \.offset) { item in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(snapshotDetails(item.element)).font(.caption).foregroundStyle(.secondary)
+                            Text(item.element.text).textSelection(.enabled)
+                        }
+                    }
+                }
+                .font(.callout)
             }
         }
         .padding(.vertical, 4)

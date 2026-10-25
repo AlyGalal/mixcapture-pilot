@@ -5,10 +5,18 @@ import Speech
 /// On-device transcription with SpeechAnalyzer + DictationTranscriber (works on devices
 /// without Apple Intelligence). Never downloads on its own and never uses network recognition:
 /// assets are installed only by `prepareAssets`, which runs from an explicit user tap.
+/// The `ar+en` profile goes to the bundled offline `WhisperTranscriber` instead; the Apple path
+/// below is unchanged and never used as a silent fallback for it (or vice versa).
 enum LocalTranscriber {
     static let engineName = "DictationTranscriber.longDictation"
     /// Small contextual-strings glossary. Biases recognition only; stored text is never rewritten.
+    /// Also the only content of the Whisper initial prompt (comma-joined).
     static let glossary = ["Home", "Travel", "budget", "review", "design", "Groceries"]
+
+    /// Engine that will run for a profile (shown in the UI Engine row).
+    static func engineLabel(for choice: PilotLocale) -> String {
+        choice == .mixedArabicEnglish ? WhisperTranscriber.engineName : "\(engineName) (\(choice.rawValue))"
+    }
 
     struct AssetReport: Sendable, Equatable {
         let requested: String
@@ -60,8 +68,15 @@ enum LocalTranscriber {
         }
     }
 
+    /// Bundled Whisper model readiness. Read-only; there is nothing to download.
+    private static func whisperReport() -> AssetReport {
+        AssetReport(requested: PilotLocale.mixedArabicEnglish.rawValue, resolved: "multilingual",
+                    status: WhisperTranscriber.modelURL == nil ? "model missing" : "installed")
+    }
+
     /// Read-only status check; safe to call on launch.
     static func assetReport(for choice: PilotLocale) async -> AssetReport {
+        if choice == .mixedArabicEnglish { return whisperReport() }
         guard let resolved = await resolve(choice) else {
             return AssetReport(requested: choice.rawValue, resolved: nil, status: "unsupported")
         }
@@ -72,6 +87,12 @@ enum LocalTranscriber {
 
     /// Explicit user action only: downloads/installs the on-device assets for one locale.
     static func prepareAssets(for choice: PilotLocale) async throws -> AssetReport {
+        if choice == .mixedArabicEnglish {
+            // The Whisper model ships inside the app; report it, never pretend to download it.
+            let report = whisperReport()
+            guard WhisperTranscriber.modelURL != nil else { throw WhisperTranscriber.Failure.modelMissing }
+            return report
+        }
         guard let resolved = await resolve(choice) else {
             throw Failure.unsupportedLocale(choice.rawValue)
         }
@@ -100,6 +121,9 @@ enum LocalTranscriber {
 
     /// Transcribes a finalized audio file with one locale and returns the final results verbatim.
     static func transcribe(audioURL: URL, locale choice: PilotLocale) async throws -> Output {
+        if choice == .mixedArabicEnglish {
+            return try await WhisperTranscriber.transcribe(audioURL: audioURL, glossary: glossary)
+        }
         guard let resolved = await resolve(choice) else {
             throw Failure.unsupportedLocale(choice.rawValue)
         }

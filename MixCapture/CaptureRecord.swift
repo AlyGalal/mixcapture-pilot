@@ -3,12 +3,36 @@ import Foundation
 // Foundation-only models, persistence and built-in test prompts.
 // Compiled into the app and into Tests/ModelChecks.swift, so no Apple UI/audio frameworks here.
 
-/// One analyzer = one locale. Arabic is the default; en-US exists only for comparison runs.
+/// Transcription profile stored on every capture; raw values are persisted, never rename them.
+/// `ar+en` is a profile label for the bundled multilingual Whisper path (language auto-selected
+/// per recording), not a BCP 47 locale. ar-EG / en-US are single-locale Apple
+/// DictationTranscriber runs kept for comparison.
 enum PilotLocale: String, CaseIterable, Codable, Identifiable {
+    case mixedArabicEnglish = "ar+en"
     case arabicEgypt = "ar-EG"
     case englishUS = "en-US"
 
     var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .mixedArabicEnglish: return "Mixed Arabic+English (Whisper)"
+        case .arabicEgypt: return "Apple Arabic (ar-EG)"
+        case .englishUS: return "Apple English (en-US)"
+        }
+    }
+}
+
+/// An earlier successful transcript of the same audio, archived when a newer successful run
+/// replaced it, so engine/locale comparisons never erase results. Stored verbatim.
+struct TranscriptSnapshot: Codable, Equatable {
+    let segments: [String]
+    let resolvedLocale: String?
+    let engine: String?
+    let processingSeconds: Double?
+    let manualAssessment: ManualAssessment
+
+    var text: String { segments.joined(separator: " ") }
 }
 
 enum CaptureStatus: String, Codable {
@@ -98,6 +122,8 @@ struct CaptureRecord: Codable, Identifiable, Equatable {
     var wasInterrupted: Bool
     /// Final results exactly as the engine returned them (no normalization/translation).
     var transcriptSegments: [String]?
+    /// Previous successful results, oldest first. Optional so JSON written before build 3 decodes.
+    var transcriptHistory: [TranscriptSnapshot]?
     var errorMessage: String?
     var processingSeconds: Double?
     var assessment: ManualAssessment
@@ -136,9 +162,8 @@ struct CaptureRecord: Codable, Identifiable, Equatable {
         status = .pendingTranscription
     }
 
-    /// Retry (possibly with a different locale). The previous transcript is kept until replaced.
-    /// ponytail: one transcript slot per capture, so an en-US retry replaces the ar-EG result on
-    /// success. Upgrade path: store an array of runs if side-by-side comparison is needed.
+    /// Retry (possibly with a different locale/engine). The current transcript stays until a new
+    /// successful run replaces it; it is then archived in `transcriptHistory`, never dropped.
     mutating func queueTranscription(locale: String) {
         requestedLocale = locale
         status = .pendingTranscription
@@ -156,6 +181,13 @@ struct CaptureRecord: Codable, Identifiable, Equatable {
 
     mutating func finishTranscription(segments: [String], resolvedLocale: String,
                                       engine: String, processingSeconds: Double) {
+        if let previous = transcriptSegments {
+            // Archive the replaced success once, with its own metadata and manual rating.
+            transcriptHistory = (transcriptHistory ?? []) + [
+                TranscriptSnapshot(segments: previous, resolvedLocale: self.resolvedLocale, engine: self.engine,
+                                   processingSeconds: self.processingSeconds, manualAssessment: assessment),
+            ]
+        }
         if segments != transcriptSegments {
             assessment = .unassessed // a new transcript needs a new manual judgement
         }
@@ -264,6 +296,8 @@ struct ResultsExport: Codable {
         let engine: String?
         let text: String?
         let segments: [String]?
+        /// Earlier successful results of the same audio (oldest first), each with its own metadata.
+        let previousResults: [TranscriptSnapshot]
         let elapsedSeconds: Double?
         let durationSeconds: Double
         let manualAssessment: ManualAssessment
@@ -281,8 +315,8 @@ struct ResultsExport: Codable {
 
     init(records: [CaptureRecord], exportedAt: Date = Date()) {
         self.exportedAt = exportedAt
-        app = "MixCapture Pilot 1.0 (2)"
-        note = "Local transcription; manual assessment only. Engine, resolvedLocale and elapsedSeconds describe the retained transcript; textIsPreviousResult marks a result from an earlier successful attempt."
+        app = "MixCapture Pilot 1.0 (3)"
+        note = "Local transcription; manual assessment only. Engine, resolvedLocale and elapsedSeconds describe the retained transcript; textIsPreviousResult marks a result from an earlier successful attempt. previousResults lists earlier successful results of the same audio that a later run replaced. requestedLocale ar+en is a profile label (multilingual Whisper, language auto-selected), not a BCP 47 locale."
         results = records.map { record in
             Row(captureID: record.id,
                 recordedAt: record.recordedAt,
@@ -294,6 +328,7 @@ struct ResultsExport: Codable {
                 engine: record.engine,
                 text: record.transcript,
                 segments: record.transcriptSegments,
+                previousResults: record.transcriptHistory ?? [],
                 elapsedSeconds: record.processingSeconds,
                 durationSeconds: record.durationSeconds,
                 manualAssessment: record.assessment,
