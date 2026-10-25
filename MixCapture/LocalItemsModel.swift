@@ -139,7 +139,10 @@ final class LocalItemsModel {
     func reconcile() async {
         guard storageError == nil else { return }
         let center = UNUserNotificationCenter.current()
+        let queriedSnapshot = snapshot
         let pending = Set(await center.pendingNotificationRequests().map(\.identifier))
+        // A save/schedule can finish during the native query; leave newer state for the next refresh.
+        guard snapshot == queriedSnapshot else { return }
         let completed = snapshot.reminders.filter { $0.status == .completed }.map { $0.id.uuidString }
         center.removePendingNotificationRequests(withIdentifiers: completed)
 
