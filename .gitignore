@@ -1,0 +1,7 @@
+build/
+device-results/
+*.ipa
+*.xcresult
+*.xcuserstate
+xcuserdata/
+.DS_Store

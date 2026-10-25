@@ -1,0 +1,44 @@
+name: Build iPhone pilot
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'MixCapture/**'
+      - 'MixCapture.xcodeproj/**'
+      - 'Tests/**'
+      - 'scripts/build-unsigned.sh'
+      - '.github/workflows/build-ios.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check models and build unsigned device app
+        run: bash scripts/build-unsigned.sh
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: mixcapture-unsigned
+          path: |
+            build/MixCapture-unsigned.ipa
+            build/SHA256SUMS.txt
+            build/build-info.txt
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-diagnostics
+          path: |
+            build/build-info.txt
+            build/model-checks.log
+            build/xcodebuild.log
+          if-no-files-found: warn
+          retention-days: 14
