@@ -13,15 +13,16 @@ swiftc -parse-as-library -D WHISPER_PROBE -target "$(uname -m)-apple-macos26.0" 
   MixCapture/CaptureRecord.swift MixCapture/LocalTranscriber.swift MixCapture/WhisperTranscriber.swift \
   Tests/WhisperProbe.swift -o build/probe/WhisperProbe
 for entry in \
-  'small-q5_1 ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb' \
-  'large-v3-turbo-q5_0 394221709cd5ad1f40c46e6031ca61bce88931e6e088c188294c6d5a55ffa7e2' \
-  'medium-q5_0 19fea4b380c3a618ec4723c3eef2eb785ffba0d0538cf43f8f235e7b3b34220f'; do
-  read -r model digest <<< "$entry"
-  path="build/probe/ggml-$model.bin"
-  curl -fLsS --retry 3 "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-$model.bin" -o "$path"
+  'AshrafMMahdy/futo-egyptian-arabic-models 0b4a13bc110d51207d971178c9bb054475cb3c62 small_egy_acft_q8_0.bin fe6a363bd52bb07c968c515d29461ad28c233a283bf51527e2070e931d6470fc' \
+  'eliasbatshon/mktub-whisper-codeswitch-ggml ec43229722f37dc233fce436609f671c7725bc99 ggml-codeswitch-medium-q8_0.bin 42ad913750c5487f8fb7bb9d45033fc06443d59d387c797b02632f639d46fbdd'; do
+  read -r repo revision file digest <<< "$entry"
+  path="build/probe/$file"
+  curl -fLsS --retry 3 "https://huggingface.co/$repo/resolve/$revision/$file" -o "$path"
   printf '%s  %s\n' "$digest" "$path" | shasum -a 256 -c -
-  for prompt in on off; do
+  for profile in 'auto on greedy' 'auto off greedy' 'ar off beam5'; do
+    read -r language prompt decoding <<< "$profile"
     WHISPER_MODEL_PATH="$(pwd)/$path" WHISPER_PROBE_PROMPT="$prompt" \
+      WHISPER_PROBE_LANGUAGE="$language" WHISPER_PROBE_DECODING="$decoding" \
       build/probe/WhisperProbe build/probe/arzen.wav | tee -a build/probe/results.log
   done
 done

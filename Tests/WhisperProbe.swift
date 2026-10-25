@@ -7,7 +7,8 @@ struct WhisperProbe {
         var report: [String: Any] = [
             "model": ProcessInfo.processInfo.environment["WHISPER_MODEL_PATH"] ?? "?",
             "prompt": ProcessInfo.processInfo.environment["WHISPER_PROBE_PROMPT"] ?? "on",
-            "language": ProcessInfo.processInfo.environment["WHISPER_PROBE_LANGUAGE"] ?? "auto"
+            "language": ProcessInfo.processInfo.environment["WHISPER_PROBE_LANGUAGE"] ?? "auto",
+            "decoding": ProcessInfo.processInfo.environment["WHISPER_PROBE_DECODING"] ?? "greedy"
         ]
         do {
             let result = try await LocalTranscriber.transcribe(

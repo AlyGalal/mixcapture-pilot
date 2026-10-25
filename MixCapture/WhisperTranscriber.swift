@@ -126,6 +126,12 @@ actor WhisperTranscriber {
         params.temperature = 0
         params.temperature_inc = 0 // no temperature fallback: reproducible greedy decoding
         params.greedy.best_of = 1
+#if WHISPER_PROBE
+        if ProcessInfo.processInfo.environment["WHISPER_PROBE_DECODING"] == "beam5" {
+            params.strategy = WHISPER_SAMPLING_BEAM_SEARCH
+            params.beam_search.beam_size = 5
+        }
+#endif
         params.suppress_blank = true
         params.suppress_nst = true
         params.print_special = false
