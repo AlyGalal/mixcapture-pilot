@@ -18,7 +18,7 @@
 		A10000000000000000000028 /* WhisperTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000019 /* WhisperTranscriber.swift */; };
 		A10000000000000000000029 /* whisper.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = A10000000000000000000030 /* whisper.xcframework */; };
 		A10000000000000000000031 /* whisper.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A10000000000000000000030 /* whisper.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		A10000000000000000000032 /* ggml-small-q5_1.bin in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000033 /* ggml-small-q5_1.bin */; };
+		A10000000000000000000032 /* small_egy_acft_q8_0.bin in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000033 /* small_egy_acft_q8_0.bin */; };
 		A10000000000000000000034 /* ThirdPartyNotices.txt in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000035 /* ThirdPartyNotices.txt */; };
 /* End PBXBuildFile section */
 
@@ -47,7 +47,7 @@
 		A10000000000000000000018 /* LocalItemsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalItemsViews.swift; sourceTree = "<group>"; };
 		A10000000000000000000019 /* WhisperTranscriber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhisperTranscriber.swift; sourceTree = "<group>"; };
 		A10000000000000000000030 /* whisper.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = build/Whisper/whisper.xcframework; sourceTree = SOURCE_ROOT; };
-		A10000000000000000000033 /* ggml-small-q5_1.bin */ = {isa = PBXFileReference; lastKnownFileType = file; path = build/Whisper/ggml-small-q5_1.bin; sourceTree = SOURCE_ROOT; };
+		A10000000000000000000033 /* small_egy_acft_q8_0.bin */ = {isa = PBXFileReference; lastKnownFileType = file; path = build/Whisper/small_egy_acft_q8_0.bin; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000035 /* ThirdPartyNotices.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = ThirdPartyNotices.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -157,7 +157,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10000000000000000000032 /* ggml-small-q5_1.bin in Resources */,
+				A10000000000000000000032 /* small_egy_acft_q8_0.bin in Resources */,
 				A10000000000000000000034 /* ThirdPartyNotices.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -2,7 +2,7 @@ import AVFoundation
 import Foundation
 import whisper
 
-/// Fully offline multilingual Whisper (whisper.cpp + bundled ggml-small-q5_1.bin) for the `ar+en`
+/// Offline Egyptian Arabic/English fine-tuned Whisper for the `ar+en`
 /// profile. A candidate for A/B comparison with DictationTranscriber, not a guarantee of anything.
 /// No network, no download, no fallback to another engine. Output segments are returned verbatim:
 /// no transliteration, translation, script normalization or text substitution.
@@ -10,8 +10,8 @@ import whisper
 /// whisper.cpp is not safe for concurrent use of one context, so every C call runs serially on this
 /// actor's executor (never the main actor), with a fresh context per run that is freed in `defer`.
 actor WhisperTranscriber {
-    static let engineName = "Whisper.cpp 1.8.2 / small-q5_1 ae85e4a9 / multilingual / auto / greedy0"
-    static let modelResource = "ggml-small-q5_1"
+    static let engineName = "Whisper.cpp 1.8.2 / Egyptian-CS small-Q8 fe6a363b / ar / beam5"
+    static let modelResource = "small_egy_acft_q8_0"
     private static let sampleRate = 16_000.0
     /// ponytail: 30 min cap (~115 MB of Float32), far below Int32.max samples; longer audio is
     /// rejected instead of silently truncated. Upgrade path: chunked inference.
@@ -19,11 +19,6 @@ actor WhisperTranscriber {
     private static let shared = WhisperTranscriber()
 
     static var modelURL: URL? {
-#if WHISPER_PROBE
-        if let path = ProcessInfo.processInfo.environment["WHISPER_MODEL_PATH"] {
-            return URL(fileURLWithPath: path)
-        }
-#endif
         return Bundle.main.url(forResource: modelResource, withExtension: "bin")
     }
 
@@ -38,7 +33,7 @@ actor WhisperTranscriber {
         var errorDescription: String? {
             switch self {
             case .modelMissing:
-                return "نموذج Whisper (ggml-small-q5_1.bin) غير موجود داخل التطبيق. لا يحدث أي تنزيل؛ الصوت محفوظ."
+                return "نموذج Whisper المصري المضمّن غير موجود داخل التطبيق. الصوت محفوظ؛ يلزم إصلاح نسخة التطبيق."
             case .modelLoadFailed:
                 return "تعذر تحميل نموذج Whisper المضمّن. الصوت محفوظ ويمكن إعادة المحاولة."
             case .notMultilingual:
@@ -74,10 +69,10 @@ actor WhisperTranscriber {
 
     /// Transcribes one finalized recording. Throws `CancellationError` if cancelled at any point;
     /// a cancelled run never returns a result. The audio file is only read, never modified.
-    static func transcribe(audioURL: URL, glossary: [String]) async throws -> LocalTranscriber.Output {
+    static func transcribe(audioURL: URL) async throws -> LocalTranscriber.Output {
         let flag = CancelFlag()
         let output = try await withTaskCancellationHandler {
-            try await shared.run(audioURL: audioURL, glossary: glossary, flag: flag)
+            try await shared.run(audioURL: audioURL, flag: flag)
         } onCancel: {
             flag.cancel()
         }
@@ -85,7 +80,7 @@ actor WhisperTranscriber {
         return output
     }
 
-    private func run(audioURL: URL, glossary: [String], flag: CancelFlag) throws -> LocalTranscriber.Output {
+    private func run(audioURL: URL, flag: CancelFlag) throws -> LocalTranscriber.Output {
         let isCancelled = { flag.isCancelled || Task.isCancelled }
         func checkCancelled() throws {
             if isCancelled() { throw CancellationError() }
@@ -116,22 +111,17 @@ actor WhisperTranscriber {
         guard whisper_is_multilingual(context) != 0 else { throw Failure.notMultilingual }
         try checkCancelled()
 
-        var params = whisper_full_default_params(WHISPER_SAMPLING_GREEDY)
+        var params = whisper_full_default_params(WHISPER_SAMPLING_BEAM_SEARCH)
         params.n_threads = Int32(max(1, min(4, ProcessInfo.processInfo.processorCount - 2)))
         params.translate = false
-        // Auto: whisper_full picks the language itself. detect_language=true would only detect and stop.
+        // The Egyptian/English fine-tune uses an Arabic hint and is trained to retain Latin
+        // words in mixed speech. No dictionary or text replacement is applied.
         params.detect_language = false
-        // Nothing from earlier recordings. This does not drop initial_prompt (see whisper.h).
+        // Nothing from earlier recordings and no glossary/expected-text prompt.
         params.no_context = true
         params.temperature = 0
-        params.temperature_inc = 0 // no temperature fallback: reproducible greedy decoding
-        params.greedy.best_of = 1
-#if WHISPER_PROBE
-        if ProcessInfo.processInfo.environment["WHISPER_PROBE_DECODING"] == "beam5" {
-            params.strategy = WHISPER_SAMPLING_BEAM_SEARCH
-            params.beam_search.beam_size = 5
-        }
-#endif
+        params.temperature_inc = 0
+        params.beam_search.beam_size = 5
         params.suppress_blank = true
         params.suppress_nst = true
         params.print_special = false
@@ -145,22 +135,12 @@ actor WhisperTranscriber {
         }
         params.abort_callback_user_data = Unmanaged.passUnretained(flag).toOpaque()
 
-        // Initial prompt = existing English glossary words only (vocabulary bias, no instructions).
-        var prompt = glossary.joined(separator: ", ")
-        var languageChoice = "auto"
-#if WHISPER_PROBE
-        if ProcessInfo.processInfo.environment["WHISPER_PROBE_PROMPT"] == "off" { prompt = "" }
-        languageChoice = ProcessInfo.processInfo.environment["WHISPER_PROBE_LANGUAGE"] ?? "auto"
-#endif
-        let code: Int32 = languageChoice.withCString { language -> Int32 in
-            prompt.withCString { initialPrompt -> Int32 in
-                // Both C strings and the flag stay alive for the whole synchronous whisper_full call.
-                params.language = language
-                params.initial_prompt = prompt.isEmpty ? nil : initialPrompt
-                return withExtendedLifetime(flag) {
-                    samples.withUnsafeBufferPointer { pcm in
-                        whisper_full(context, params, pcm.baseAddress, sampleCount)
-                    }
+        let code: Int32 = "ar".withCString { language -> Int32 in
+            params.language = language
+            params.initial_prompt = nil
+            return withExtendedLifetime(flag) {
+                samples.withUnsafeBufferPointer { pcm in
+                    whisper_full(context, params, pcm.baseAddress, sampleCount)
                 }
             }
         }
@@ -187,7 +167,7 @@ actor WhisperTranscriber {
             throw LocalTranscriber.Failure.noSpeech
         }
         return LocalTranscriber.Output(segments: segments, resolvedLocale: language,
-                                       engine: Self.engineName + (prompt.isEmpty ? "" : "+glossary-prompt"),
+                                       engine: Self.engineName,
                                        elapsedSeconds: ProcessInfo.processInfo.systemUptime - started)
     }
 

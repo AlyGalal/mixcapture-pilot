@@ -4,7 +4,7 @@ import Foundation
 // Compiled into the app and into Tests/ModelChecks.swift, so no Apple UI/audio frameworks here.
 
 /// Transcription profile stored on every capture; raw values are persisted, never rename them.
-/// `ar+en` is a profile label for the bundled multilingual Whisper path (language auto-selected
+/// `ar+en` is a profile label for the bundled multilingual Whisper path (Arabic language hint
 /// per recording), not a BCP 47 locale. ar-EG / en-US are single-locale Apple
 /// DictationTranscriber runs kept for comparison.
 enum PilotLocale: String, CaseIterable, Codable, Identifiable {
@@ -316,7 +316,7 @@ struct ResultsExport: Codable {
     init(records: [CaptureRecord], exportedAt: Date = Date()) {
         self.exportedAt = exportedAt
         app = "MixCapture Pilot 1.0 (3)"
-        note = "Local transcription; manual assessment only. Engine, resolvedLocale and elapsedSeconds describe the retained transcript; textIsPreviousResult marks a result from an earlier successful attempt. previousResults lists earlier successful results of the same audio that a later run replaced. requestedLocale ar+en is a profile label (multilingual Whisper, language auto-selected), not a BCP 47 locale."
+        note = "Local transcription; manual assessment only. Engine, resolvedLocale and elapsedSeconds describe the retained transcript; textIsPreviousResult marks a result from an earlier successful attempt. previousResults lists earlier successful results of the same audio that a later run replaced. requestedLocale ar+en is a profile label (multilingual Whisper, Arabic language hint), not a BCP 47 locale."
         results = records.map { record in
             Row(captureID: record.id,
                 recordedAt: record.recordedAt,

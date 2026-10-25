@@ -1,37 +1,33 @@
 # MixCapture Pilot
 
-Experimental native iPhone app for on-device Arabic/English mixed speech transcription with bundled multilingual Whisper and Apple DictationTranscriber comparison profiles. iOS 26 or later. No Apple Intelligence requirement, cloud transcription, analytics or account login.
+A native iPhone voice-capture pilot with fully on-device Egyptian Arabic/English transcription, local expenses and local reminder notifications. iOS 26+. No cloud transcription, analytics or AI account.
 
-The app keeps recordings locally, prepares language assets only from an explicit setup action, and includes twelve synthetic spoken prompts with manual assessment. An SDK build does not verify real-device recognition or lock-screen behavior.
+## Mixed transcription (build 3)
 
-## Build and install
+The default Mixed Arabic+English profile uses whisper.cpp 1.8.2 and a bundled Egyptian/English fine-tuned Whisper Small Q8 model (~264 MB). It uses an Arabic language hint, beam search size 5, temperature zero, no earlier-recording context and no prompt. Text is retained verbatim; no translation or phonetic-word replacement is performed after recognition. The app performs no model download or audio upload in this path.
 
-GitHub Actions runs the Foundation-only persistence/model checks and builds an **unsigned** device IPA:
+The model is Ibrahim Amin's Egyptian Arabic/English fine-tune, with ACFT adaptation and GGML Q8 conversion by AshrafMMahdy. Binary/model URLs are pinned and SHA-256 checked at build time. OpenAI/ggml MIT and upstream Apache-2.0 notices are included in the app. [Model provenance](https://huggingface.co/AshrafMMahdy/futo-egyptian-arabic-models/tree/0b4a13bc110d51207d971178c9bb054475cb3c62).
 
-```sh
-bash scripts/build-unsigned.sh
-```
+Apple DictationTranscriber Arabic/English remain manual comparison choices. Their Prepare buttons download Apple's assets explicitly. Successful same-audio retries preserve previous text, engine, locale, elapsed time and manual assessment in history and JSON export. Existing recordings remain readable. Whisper recordings over 30 minutes are rejected explicitly without modifying audio.
 
-The IPA must be signed before installation. For a personal Windows-based trial, follow the [official AltStore Classic instructions](https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows). Free-account installations require periodic refresh. This app never asks for an Apple account or signing credentials.
+## Validation and limits
 
-## Back Tap
+Run on macOS: `bash scripts/build-unsigned.sh`.
 
-Save the app's Start Recording action as a personal Shortcut. Alternatively, make a Shortcut containing URL `mixcapture://record` followed by Open URLs. Select it under Settings > Accessibility > Touch > Back Tap.
+The build checks legacy persistence/history, money validation and reminders, then runs the actual model against the [public ArzEn authors' example](https://sites.google.com/view/arzen-corpus/resources). It checks Arabic/Latin anchor words, same-file repeatability on its CPU, 44.1-kHz stereo AAC conversion, silence and cancellation before compiling the iPhone app. Research audio is fetched for CI evaluation only; it is not committed, packaged or uploaded as an artifact.
 
-Recording starts only after the app is foregrounded and microphone permission is granted. Unlocking may be necessary. This pilot has no recording extension or background microphone wake-up workaround.
+ArzEn may overlap the fine-tune's training data. This is a functional regression check, not held-out accuracy evidence. Real-device code switching, English orthography, memory and latency still require representative phone recordings. Script preservation is not guaranteed.
 
-## Mixed-language trials
+## Install and Back Tap
 
-Prepare the Arabic language assets explicitly, then test airplane mode with Wi-Fi disabled. Compare the transcript with the spoken prompt and assess manually. Each transcriber uses one locale; Arabic support alone is not a guarantee of within-sentence Arabic/English accuracy.
+The IPA is unsigned. Sign/install using a local sideloader such as [iloader](https://iloader.app/) with your own Apple account. Keep the existing app and use the same signing identity when updating to retain its data. Free developer signing requires periodic renewal; do not delete the app to refresh it.
+
+After a manual recording works, save the app's Start Recording action as a personal Shortcut. Alternatively, use a URL action `mixcapture://record` followed by Open URLs. Select it under Settings > Accessibility > Touch > Back Tap.
+
+Recording begins after the app enters the foreground and microphone permission is granted. Unlocking may be necessary. Ongoing file transcription runs in the foreground and is safely cancelled/deferred when backgrounded.
+
+## Other local features
+
+Expenses use integer minor units, user-selected categories and separate monthly totals per currency. Reminders use local notifications. Amounts, categories and dates require manual review/entry; automatic command extraction and Apple Calendar integration are not implemented.
 
 Source and synthetic text fixtures only: do not submit personal audio, exported results, device identifiers or signing credentials to this repository.
-
-## Local expenses and reminders
-
-Monthly expenses use integer minor units, user-selected categories, and separate totals per currency. Reminders use local notifications. Amounts, categories and dates require manual review and entry; automatic command extraction and Apple Calendar integration are not implemented. No push service is required.
-
-## Build 3 mixed-language candidate
-
-Mixed Arabic+English uses whisper.cpp 1.8.2 and bundled multilingual small-q5_1 weights (~190 MB). The binary and weights are pinned and checksum-verified at build time; this path performs no runtime downloads or audio uploads. Auto language detection, transcription (no translation), greedy temperature 0 and a short glossary prompt are used. No phonetic text replacement is performed. Code switching/script preservation must be evaluated on representative device audio; it is not guaranteed.
-
-Successful retries archive the previous exact transcript, engine, locale, elapsed time and manual rating. Legacy recordings remain readable. The build runs a real-model smoke against the public ArzEn example linked by its authors at https://sites.google.com/view/arzen-corpus/resources, repeats the same PCM, converts to 44.1-kHz stereo AAC, and checks silence/cancellation. Public research audio is downloaded for CI evaluation only, never committed or included in the IPA/artifacts. Passing this sample does not establish real-device accuracy or latency. Whisper recordings over 30 minutes are rejected explicitly without modifying audio.

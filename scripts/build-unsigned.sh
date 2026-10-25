@@ -26,11 +26,11 @@ printf '%s  %s\n' '3ffeec1df254d908f01ee3d87bf0aedb8fbc8f29cbf50dc8702741bb85381
 unzip -q -o build/Whisper/framework.zip -d build/Whisper/unpacked
 ditto build/Whisper/unpacked/build-apple/whisper.xcframework build/Whisper/whisper.xcframework
 curl --fail --location --retry 3 \
-  'https://huggingface.co/ggerganov/whisper.cpp/resolve/c521a4b02f422512d734391fdf08bb08c0862f68/ggml-small-q5_1.bin' \
-  -o build/Whisper/ggml-small-q5_1.bin
-printf '%s  %s\n' 'ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb' \
-  'build/Whisper/ggml-small-q5_1.bin' | shasum -a 256 -c -
-printf '%s\n' 'whisper.cpp 1.8.2; small-q5_1 multilingual; model SHA256 ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb' \
+  'https://huggingface.co/AshrafMMahdy/futo-egyptian-arabic-models/resolve/0b4a13bc110d51207d971178c9bb054475cb3c62/small_egy_acft_q8_0.bin' \
+  -o build/Whisper/small_egy_acft_q8_0.bin
+printf '%s  %s\n' 'fe6a363bd52bb07c968c515d29461ad28c233a283bf51527e2070e931d6470fc' \
+  'build/Whisper/small_egy_acft_q8_0.bin' | shasum -a 256 -c -
+printf '%s\n' 'whisper.cpp 1.8.2; Egyptian-CS small-Q8; model SHA256 fe6a363bd52bb07c968c515d29461ad28c233a283bf51527e2070e931d6470fc' \
   >> build/build-info.txt
 
 # The ArzEn authors publish this 4.72-second Egyptian Arabic/English example at
@@ -44,7 +44,7 @@ printf '%s  %s\n' '5061de78839208537dca090724069341750dffc55e220d81f20d63bdf244a
 /usr/bin/afconvert -f m4af -d aac@44100 -c 2 build/Whisper/arzen-example.wav build/Whisper/arzen-stereo.m4a
 smoke='build/WhisperSmoke.app/Contents'
 mkdir -p "$smoke/MacOS" "$smoke/Resources" "$smoke/Frameworks"
-cp build/Whisper/ggml-small-q5_1.bin "$smoke/Resources/"
+cp build/Whisper/small_egy_acft_q8_0.bin "$smoke/Resources/"
 ditto build/Whisper/whisper.xcframework/macos-arm64_x86_64/whisper.framework "$smoke/Frameworks/whisper.framework"
 cat > "$smoke/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict><key>CFBundleExecutable</key><string>WhisperSmoke</string><key>CFBundleIdentifier</key><string>com.mixcapture.smoke</string><key>CFBundlePackageType</key><string>APPL</string></dict></plist>
@@ -70,9 +70,9 @@ app='build/DerivedData/Build/Products/Release-iphoneos/MixCapture.app'
 test -f "$app/Info.plist"
 test -f "$app/MixCapture"
 test -f "$app/Frameworks/whisper.framework/whisper"
-test -f "$app/ggml-small-q5_1.bin"
-printf '%s  %s\n' 'ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb' \
-  "$app/ggml-small-q5_1.bin" | shasum -a 256 -c -
+test -f "$app/small_egy_acft_q8_0.bin"
+printf '%s  %s\n' 'fe6a363bd52bb07c968c515d29461ad28c233a283bf51527e2070e931d6470fc' \
+  "$app/small_egy_acft_q8_0.bin" | shasum -a 256 -c -
 /usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist" \
   >> build/build-info.txt
 mkdir -p build/package/Payload

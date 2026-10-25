@@ -28,7 +28,7 @@ struct WhisperSmoke {
         try require(words.contains("network") && words.contains("project") && words.contains("يعني"),
                     "unprompted English network/project terms and Arabic يعني remain in their scripts")
         let again = try await LocalTranscriber.transcribe(audioURL: audio, locale: .mixedArabicEnglish)
-        try require(first.segments == again.segments, "same PCM yields identical greedy transcript on CI CPU")
+        try require(first.segments == again.segments, "same PCM yields identical beam-search transcript on CI CPU")
         let compressed = try await LocalTranscriber.transcribe(audioURL: aac, locale: .mixedArabicEnglish)
         print("PUBLIC ARZEN AAC: \(compressed.segments.joined(separator: " "))")
         try require(hasBothScripts(compressed.segments.joined(separator: " ")),

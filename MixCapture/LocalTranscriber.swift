@@ -10,7 +10,6 @@ import Speech
 enum LocalTranscriber {
     static let engineName = "DictationTranscriber.longDictation"
     /// Small contextual-strings glossary. Biases recognition only; stored text is never rewritten.
-    /// Also the only content of the Whisper initial prompt (comma-joined).
     static let glossary = ["Home", "Travel", "budget", "review", "design", "Groceries"]
 
     /// Engine that will run for a profile (shown in the UI Engine row).
@@ -122,7 +121,7 @@ enum LocalTranscriber {
     /// Transcribes a finalized audio file with one locale and returns the final results verbatim.
     static func transcribe(audioURL: URL, locale choice: PilotLocale) async throws -> Output {
         if choice == .mixedArabicEnglish {
-            return try await WhisperTranscriber.transcribe(audioURL: audioURL, glossary: glossary)
+            return try await WhisperTranscriber.transcribe(audioURL: audioURL)
         }
         guard let resolved = await resolve(choice) else {
             throw Failure.unsupportedLocale(choice.rawValue)

@@ -140,7 +140,7 @@ struct ContentView: View {
                     Text(locale.label).font(.headline)
                     if let report = model.assetReports[locale] {
                         if locale == .mixedArabicEnglish {
-                            Text("\(report.resolved ?? "?") · bundled model ggml-small-q5_1: \(report.status)")
+                            Text("\(report.resolved ?? "?") · Egyptian Arabic+English: \(report.status)")
                                 .font(.callout)
                                 .foregroundStyle(report.status == "installed" ? Color.primary : Color.red)
                         } else {
@@ -153,7 +153,7 @@ struct ContentView: View {
                 }
                 .accessibilityElement(children: .combine)
             }
-            Text("Whisper جاهز داخل التطبيق (~190 MB)، بلا تنزيل أو اتصال أثناء التفريغ. قد يستغرق وقتاً أطول من Apple؛ سيظهر زمن المعالجة مع النتيجة.")
+            Text("نموذج المصري والإنجليزي جاهز داخل التطبيق (~264 MB)، بلا تنزيل أو اتصال أثناء التفريغ. قد يستغرق وقتاً أطول من Apple؛ سيظهر زمن المعالجة مع النتيجة.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
             ForEach([PilotLocale.arabicEgypt, PilotLocale.englishUS]) { locale in
