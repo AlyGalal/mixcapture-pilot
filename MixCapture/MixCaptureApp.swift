@@ -3,21 +3,37 @@ import SwiftUI
 @main
 struct MixCaptureApp: App {
     @State private var model = CaptureModel.shared
+    @State private var selectedTab = 0
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
-            ContentView(model: model)
+            TabView(selection: $selectedTab) {
+                ContentView(model: model)
+                    .tabItem { Label("التسجيل", systemImage: "mic") }.tag(0)
+                ExpensesScreen()
+                    .tabItem { Label("المصروفات", systemImage: "creditcard") }.tag(1)
+                RemindersScreen()
+                    .tabItem { Label("التذكيرات", systemImage: "bell") }.tag(2)
+            }
                 .environment(\.layoutDirection, .rightToLeft)
+                .onChange(of: model.isWaitingToStart) { _, waiting in
+                    if waiting { selectedTab = 0 }
+                }
+                .onChange(of: model.isRecording) { _, recording in
+                    if recording { selectedTab = 0 }
+                }
                 .onOpenURL { url in
                     // mixcapture://record — same queued start path as the App Shortcut.
                     if url.scheme == "mixcapture", url.host() == "record" {
+                        selectedTab = 0
                         model.requestStart()
                     }
                 }
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
             model.sceneChanged(isActive: phase == .active, isBackground: phase == .background)
+            if phase == .active { Task { await LocalItemsModel.shared.reconcile() } }
         }
     }
 }
@@ -171,6 +187,8 @@ struct ContentView: View {
 struct RecordRow: View {
     let record: CaptureRecord
     let model: CaptureModel
+    @State private var showingExpense = false
+    @State private var showingReminder = false
 
     private var statusLabel: String {
         switch record.status {
@@ -245,6 +263,11 @@ struct RecordRow: View {
             .font(.callout)
 
             if record.transcript != nil {
+                HStack {
+                    Button("سجّل كمصروف", systemImage: "creditcard") { showingExpense = true }
+                    Button("أنشئ تذكير", systemImage: "bell.badge") { showingReminder = true }
+                }
+                .buttonStyle(.bordered)
                 Picker("التقييم اليدوي", selection: Binding(
                     get: { record.assessment },
                     set: { model.setAssessment($0, for: record.id) }
@@ -257,5 +280,7 @@ struct RecordRow: View {
             }
         }
         .padding(.vertical, 4)
+        .sheet(isPresented: $showingExpense) { ExpenseEditor(source: record) }
+        .sheet(isPresented: $showingReminder) { ReminderEditor(source: record) }
     }
 }

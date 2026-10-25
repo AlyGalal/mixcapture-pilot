@@ -12,6 +12,9 @@ mkdir -p build
 swiftc -parse-as-library MixCapture/CaptureRecord.swift Tests/ModelChecks.swift \
   -o build/model-checks
 build/model-checks | tee build/model-checks.log
+swiftc -parse-as-library MixCapture/LocalItems.swift Tests/LocalItemsChecks.swift \
+  -o build/items-checks
+build/items-checks | tee build/items-checks.log
 
 xcodebuild \
   -project MixCapture.xcodeproj \

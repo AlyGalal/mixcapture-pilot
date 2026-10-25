@@ -39,6 +39,7 @@ jobs:
           path: |
             build/build-info.txt
             build/model-checks.log
+            build/items-checks.log
             build/xcodebuild.log
           if-no-files-found: warn
           retention-days: 14

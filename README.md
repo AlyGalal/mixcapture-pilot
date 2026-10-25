@@ -2,7 +2,7 @@
 
 Experimental native iPhone app for on-device Arabic/English mixed speech transcription with Apple's DictationTranscriber and SpeechAnalyzer. iOS 26 or later. No Apple Intelligence requirement, third-party dependencies, cloud transcription, analytics or account login.
 
-The app keeps recordings locally, prepares language assets only from an explicit setup action, and includes ten synthetic spoken prompts with manual assessment. An SDK build does not verify real-device recognition or lock-screen behavior.
+The app keeps recordings locally, prepares language assets only from an explicit setup action, and includes twelve synthetic spoken prompts with manual assessment. An SDK build does not verify real-device recognition or lock-screen behavior.
 
 ## Build and install
 
@@ -25,3 +25,7 @@ Recording starts only after the app is foregrounded and microphone permission is
 Prepare the Arabic language assets explicitly, then test airplane mode with Wi-Fi disabled. Compare the transcript with the spoken prompt and assess manually. Each transcriber uses one locale; Arabic support alone is not a guarantee of within-sentence Arabic/English accuracy.
 
 Source and synthetic text fixtures only: do not submit personal audio, exported results, device identifiers or signing credentials to this repository.
+
+## Local expenses and reminders
+
+Monthly expenses use integer minor units, user-selected categories, and separate totals per currency. Reminders use local notifications. Amounts, categories and dates require manual review and entry; automatic command extraction and Apple Calendar integration are not implemented. No push service is required.

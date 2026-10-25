@@ -12,6 +12,9 @@
 		A10000000000000000000022 /* LocalTranscriber.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* LocalTranscriber.swift */; };
 		A10000000000000000000023 /* CaptureRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013 /* CaptureRecord.swift */; };
 		A10000000000000000000024 /* StartRecordingIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* StartRecordingIntent.swift */; };
+		A10000000000000000000025 /* LocalItems.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000016 /* LocalItems.swift */; };
+		A10000000000000000000026 /* LocalItemsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000017 /* LocalItemsModel.swift */; };
+		A10000000000000000000027 /* LocalItemsViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000018 /* LocalItemsViews.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -22,6 +25,9 @@
 		A10000000000000000000013 /* CaptureRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureRecord.swift; sourceTree = "<group>"; };
 		A10000000000000000000014 /* StartRecordingIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartRecordingIntent.swift; sourceTree = "<group>"; };
 		A10000000000000000000015 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10000000000000000000016 /* LocalItems.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalItems.swift; sourceTree = "<group>"; };
+		A10000000000000000000017 /* LocalItemsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalItemsModel.swift; sourceTree = "<group>"; };
+		A10000000000000000000018 /* LocalItemsViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalItemsViews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +65,9 @@
 				A10000000000000000000012 /* LocalTranscriber.swift */,
 				A10000000000000000000013 /* CaptureRecord.swift */,
 				A10000000000000000000014 /* StartRecordingIntent.swift */,
+				A10000000000000000000016 /* LocalItems.swift */,
+				A10000000000000000000017 /* LocalItemsModel.swift */,
+				A10000000000000000000018 /* LocalItemsViews.swift */,
 				A10000000000000000000015 /* Info.plist */,
 			);
 			path = MixCapture;
@@ -138,6 +147,9 @@
 				A10000000000000000000022 /* LocalTranscriber.swift in Sources */,
 				A10000000000000000000023 /* CaptureRecord.swift in Sources */,
 				A10000000000000000000024 /* StartRecordingIntent.swift in Sources */,
+				A10000000000000000000025 /* LocalItems.swift in Sources */,
+				A10000000000000000000026 /* LocalItemsModel.swift in Sources */,
+				A10000000000000000000027 /* LocalItemsViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -189,7 +201,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MixCapture/Info.plist;
@@ -213,7 +225,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MixCapture/Info.plist;

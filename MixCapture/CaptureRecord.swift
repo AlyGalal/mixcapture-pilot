@@ -72,6 +72,12 @@ struct TestCase: Identifiable, Hashable {
         TestCase(id: "review-design-self-correction",
                  prompt: "غير الـreview من design لـbudget، لا استنى، خليها design",
                  focus: "Mid-sentence self-correction"),
+        TestCase(id: "expense-groceries-egp",
+                 prompt: "سجل مصروف groceries بقيمة ٣٥٠ جنيه للشهر ده",
+                 focus: "Expense category + Arabic amount + currency (review manually)"),
+        TestCase(id: "expense-transport-mixed",
+                 prompt: "دفعت 120.50 EGP في Uber، التصنيف transport",
+                 focus: "Mixed expense amount, service name and category"),
     ]
 }
 
@@ -275,7 +281,7 @@ struct ResultsExport: Codable {
 
     init(records: [CaptureRecord], exportedAt: Date = Date()) {
         self.exportedAt = exportedAt
-        app = "MixCapture Pilot 1.0 (1)"
+        app = "MixCapture Pilot 1.0 (2)"
         note = "Local transcription; manual assessment only. Engine, resolvedLocale and elapsedSeconds describe the retained transcript; textIsPreviousResult marks a result from an earlier successful attempt."
         results = records.map { record in
             Row(captureID: record.id,
