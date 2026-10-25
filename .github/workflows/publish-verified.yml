@@ -1,0 +1,22 @@
+name: Publish verified pilot v0.3.0
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Verify successful source build and publish its exact IPA
+        run: |
+          gh run view 40244457159 --json conclusion,headSha --jq 'select(.conclusion == "success" and .headSha == "acfdb68f6a4506b2c87ff5bd66b889d84c67d79e") | .headSha' | grep -qx acfdb68f6a4506b2c87ff5bd66b889d84c67d79e
+          gh run download 40244457159 --name mixcapture-unsigned --dir artifact
+          cd artifact
+          sed 's@build/@@' SHA256SUMS.txt | sha256sum -c -
+          gh release upload pilot-v0.3.0 MixCapture-unsigned.ipa SHA256SUMS.txt build-info.txt --clobber
+          gh release edit pilot-v0.3.0 --draft=false
