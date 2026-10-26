@@ -159,6 +159,9 @@ enum OrganizerParser {
             return [parser.review(parser.classify(doc)?.kind ?? .note, doc, text,
                                   "This requests an update or idea development. Review the intended action before saving.")]
         }
+        if doc.all(String(Rx.newShoppingList.dropFirst())).count > 1 {
+            return [parser.review(.shopping, doc, text, "This requests multiple new lists. Enter each list separately before saving its items.")]
+        }
         let segments = parser.segments(doc)
         guard segments.count > 1 else { return parser.parseSegment(doc, text, previous: nil) }
         var drafts: [OrganizationDraft] = []
@@ -339,7 +342,7 @@ private enum Rx {
     static let addVerbStart = #"^\s*(?:ضيف|ضيفي|ضيفلي|اضيف|حط|حطي|حطلي|زود|سجل|سجلي|add|put)(?![\p{L}\p{N}])"#
     static let shoppingAddStart = #"^\s*(?:(?:لل[\sـ]*[^,،:;؛.!?؟\n\"“”]+?[,،:]?\s+|for\s+[^,،:;؛.!?؟\n\"“”]+?,\s+))?(?:(?:انا\s+)?(?:عايز|عاوزه|عاوز|عايزه|محتاج|محتاجه)\s+|(?:i\s+)?(?:want|need|would\s+like)\s+to\s+)?(?:احط|اضيف|ضيف|ضيفي|ضيفلي|حط|حطي|حطلي|زود|سجل|سجلي|add|put)(?![\p{L}\p{N}])"#
     static let calendarVerbStart = #"^\s*(?:حط|حطي|حطلي|ضيف|ضيفي|ضيفلي|اضيف|اعمل|اعملي|سجل|سجلي|احجز|احجزلي|احجزي|schedule|add|create|put|book|set\s+up|new)(?![\p{L}\p{N}])"#
-    static let calendarTarget = word(#"(?:(?:في|علي|لل|ل|to|on|in)\s*)?(?:the\s+|my\s+)?(?:ال)?(?:كالندر|كاليندر|تقويم|calendar)"#)
+    static let calendarTarget = word(#"(?:في|علي|لل|ل|to|on|in)\s*(?:the\s+|my\s+)?(?:ال)?(?:كالندر|كاليندر|تقويم|calendar)"#)
     static let imperativeStart = #"^\s*(?:و|ف)?(?:(?:ضيف|حط|سجل|اعمل|ابعت|كلم|اتصل|روح|افتح|شغل|احجز|ادفع|هات|خلي|غير|عدل|اكتب|احفظ|شيل|امسح|نظم|رتب|جيب|دور|شوف|اطلب|حول|فكر|ذكر)\p{L}{0,3}|add|put|log|save|call|send|email|text|book|schedule|create|make|set|open|go|pay|tell|ask|check|get|order|delete|remove|cancel|move|change|update|transfer|remember|buy)(?![\p{L}\p{N}])"#
 
     static let project = b + #"(?:(?:لل|ل|في|علي|الي|تبع|to|for|in|under|on)\s*)?(?:the\s+)?(?:ال)?(?:مشروع|بروجكت|بروجيكت|project)\s+([^:\n]+?)\s*(?=:|\n|$)"#

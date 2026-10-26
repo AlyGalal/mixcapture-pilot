@@ -62,6 +62,12 @@ struct OrganizerAdversarialChecks {
         review("للـ الخبز هل أضيف milk لقائمة Groceries")
         let indirectListMention = parse("For banana bread you can add milk to the shopping list Groceries")
         check(indirectListMention.allSatisfy { $0.kind == .note }, "Descriptive English purpose text is not an imperative add request")
+        let calendarPurchase = parse("Add a calendar to shopping list Office")
+        check(calendarPurchase.count == 1 && calendarPurchase.first?.kind == .shopping && calendarPurchase.first?.requiresReview == false,
+              "A calendar item on a shopping list is a purchase, not a calendar event")
+        let twoLists = parse("اعمل list جديدة أحط فيها تفاح؛ اعمل list جديدة أحط فيها ورق")
+        check(twoLists.count == 1 && twoLists.allSatisfy(\.requiresReview), "Two unnamed new lists cannot silently share a collection")
+        review("اعمل list جديدة اسمها Pantry أحط فيها تفاح وبعدين اعمل list جديدة اسمها Office أحط فيها ورق")
         let quotedRequest = parse("note: Help me develop a puzzle is a phrase to remember")
         check(quotedRequest.count == 1 && quotedRequest.first?.kind == .note && quotedRequest.first?.requiresReview == false,
               "Explicit note framing is preserved around a quoted development request")
