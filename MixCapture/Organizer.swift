@@ -315,7 +315,7 @@ private enum Rx {
         "seventeen": 17, "eighteen": 18, "nineteen": 19, "twenty": 20, "thirty": 30, "forty": 40,
         "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90,
     ]
-    static let hundreds: Set<String> = ["ميه", "مائه", "مايه", "hundred"]
+    static let hundreds: Set<String> = ["ميه", "مائه", "مئه", "مايه", "hundred"]
     static let thousands: Set<String> = ["الف", "الاف", "تلاف", "thousand"]
     static let numberAlt = alternation(Array(numbers.keys) + Array(hundreds) + Array(thousands))
     static let hourAlt = alternation(numbers.filter { (1...12).contains($0.value) }.map { $0.key })

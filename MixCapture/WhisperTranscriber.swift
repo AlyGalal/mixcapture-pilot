@@ -2,7 +2,7 @@ import AVFoundation
 import Foundation
 import whisper
 
-/// Offline Egyptian Arabic/English fine-tuned Whisper for the `ar+en`
+/// Offline Arabic/English code-switch fine-tuned Whisper for the `ar+en`
 /// profile. A candidate for A/B comparison with DictationTranscriber, not a guarantee of anything.
 /// No network, no download, no fallback to another engine. Output segments are returned verbatim:
 /// no transliteration, translation, script normalization or text substitution.
@@ -10,8 +10,8 @@ import whisper
 /// whisper.cpp is not safe for concurrent use of one context, so every C call runs serially on this
 /// actor's executor (never the main actor), with a fresh context per run that is freed in `defer`.
 actor WhisperTranscriber {
-    static let engineName = "Whisper.cpp 1.8.2 / Egyptian-CS small-Q8 fe6a363b / ar / beam5"
-    static let modelResource = "small_egy_acft_q8_0"
+    static let engineName = "Whisper.cpp 1.8.2 / Arabic-CS medium-Q8 42ad9137 / ar / beam5"
+    static let modelResource = "ggml-codeswitch-medium-q8_0"
     private static let sampleRate = 16_000.0
     /// ponytail: 30 min cap (~115 MB of Float32), far below Int32.max samples; longer audio is
     /// rejected instead of silently truncated. Upgrade path: chunked inference.
@@ -114,7 +114,7 @@ actor WhisperTranscriber {
         var params = whisper_full_default_params(WHISPER_SAMPLING_BEAM_SEARCH)
         params.n_threads = Int32(max(1, min(4, ProcessInfo.processInfo.processorCount - 2)))
         params.translate = false
-        // The Egyptian/English fine-tune uses an Arabic hint and is trained to retain Latin
+        // The Arabic/English fine-tune uses an Arabic hint and is trained to retain Latin
         // words in mixed speech. No dictionary or text replacement is applied.
         params.detect_language = false
         // Nothing from earlier recordings and no glossary/expected-text prompt.

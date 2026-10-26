@@ -1,14 +1,16 @@
 # MixCapture
 
-An experimental personal iPhone voice organizer with an Arabic RTL interface. Audio and transcription stay on the device. The bundled Egyptian Arabic/English Whisper small-Q8 model needs no runtime download or account.
+An experimental personal iPhone voice organizer with an Arabic RTL interface. Audio and transcription stay on the device. The bundled Arabic/English code-switch Whisper medium-Q8 model needs no runtime download or account.
 
-Build 4 has Today, Library, Expenses and Settings. Explicit Arabic/English commands create notes, project tasks, shopping items, recipes, classified expenses, local notification reminders and local calendar items. Ambiguous, negated and unsupported commands enter a review queue. This is a deterministic local phrase interpreter, not general AI understanding. Original text and source receipts are retained; retries are idempotent and actions can be undone.
+Build 5 has Today, Library, Expenses and Settings. Explicit Arabic/English commands create notes, project tasks, shopping items, recipes, classified expenses, local notification reminders and local calendar items. Ambiguous, negated and unsupported commands enter a review queue. This is a deterministic local phrase interpreter, not general AI understanding. Original text and source receipts are retained; retries are idempotent and actions can be undone.
 
 Calendar connection is optional and uses EventKit permission, with one-way creation and ownership-checked undo. It exports event titles/times rather than raw source transcripts; iOS may synchronize this metadata through configured calendar accounts. Backup JSON merges additively with existing UUIDs winning; imported reminders and events are never automatically activated. Audio is shared separately. Keep the app installed when updating to preserve its local data.
 
 Examples: `paid 120.50 EGP for Uber`, `remind me in 20 minutes to call Sam`, `add milk and eggs to shopping list Groceries`. Arabic examples and help are built into the app. Review transaction dates, amounts and notification status when testing.
 
 Shortcuts provides Start Recording and Toggle Recording. For Back Tap, create a shortcut using Toggle Recording (or URL `mixcapture://toggle` followed by Open URLs), then select it in Settings > Accessibility > Touch > Back Tap. Unlock/foreground and microphone permission may be required. Local transcription is foreground-only, supports recordings up to 30 minutes, and does not guarantee every English word keeps Latin script.
+
+Build 5 replaces the small model with the pinned 823 MB medium-Q8 model. It uses more memory and may take longer; real-device Metal memory, latency and accuracy remain acceptance checks. The shared money parser also recognizes the Arabic spelling of one hundred without dropping it from amounts.
 
 ## Build and verification
 

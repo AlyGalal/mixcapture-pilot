@@ -47,10 +47,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 Egyptian Arabic-English model attribution
-Ibrahim Amin: code-switched-egyptian-arabic-whisper-small (Apache-2.0), https://huggingface.co/IbrahimAmin/code-switched-egyptian-arabic-whisper-small
-AshrafMMahdy: ACFT adaptation and GGML Q8 conversion (publisher declares MIT), https://huggingface.co/AshrafMMahdy/futo-egyptian-arabic-models/tree/0b4a13bc110d51207d971178c9bb054475cb3c62
-FUTO ACFT method: https://github.com/futo-org/whisper-acft (MIT).
-The adapted Q8 weights are redistributed unchanged. Original OpenAI MIT and upstream Apache-2.0 terms are retained alongside the adaptation attribution.
+Seif-Eldeen-Sameh: whisper-medium-arabic-codeswitched (Apache-2.0), https://huggingface.co/Seif-Eldeen-Sameh/whisper-medium-arabic-codeswitched
+eliasbatshon / MKTUB: unchanged GGML Q8 conversion (Apache-2.0), https://huggingface.co/eliasbatshon/mktub-whisper-codeswitch-ggml/tree/ec43229722f37dc233fce436609f671c7725bc99
+Bundled file: ggml-codeswitch-medium-q8_0.bin, SHA256 42ad913750c5487f8fb7bb9d45033fc06443d59d387c797b02632f639d46fbdd.
+Original OpenAI MIT and upstream Apache-2.0 terms are retained alongside the conversion attribution.
 
 
                                  Apache License

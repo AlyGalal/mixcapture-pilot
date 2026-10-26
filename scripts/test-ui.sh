@@ -1,6 +1,6 @@
 #!/bin/bash
 # Native iPhone-simulator UI tests with reviewable screenshots.
-# Needs build/Whisper/whisper.xcframework + small_egy_acft_q8_0.bin (scripts/build-unsigned.sh
+# Needs build/Whisper/whisper.xcframework + ggml-codeswitch-medium-q8_0.bin (scripts/build-unsigned.sh
 # downloads them before this runs). Creates and deletes its own simulator; no downloads here.
 set -euo pipefail
 
@@ -24,7 +24,7 @@ cleanup() {
 trap cleanup EXIT
 
 test -d build/Whisper/whisper.xcframework || { echo 'Missing build/Whisper/whisper.xcframework; run scripts/build-unsigned.sh first.' >&2; exit 1; }
-test -f build/Whisper/small_egy_acft_q8_0.bin || { echo 'Missing Whisper model; run scripts/build-unsigned.sh first.' >&2; exit 1; }
+test -f build/Whisper/ggml-codeswitch-medium-q8_0.bin || { echo 'Missing Whisper model; run scripts/build-unsigned.sh first.' >&2; exit 1; }
 
 # The Xcode project references the generated icon catalog.
 swift scripts/make-icon.swift build
