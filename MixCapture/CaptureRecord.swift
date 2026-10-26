@@ -214,7 +214,7 @@ struct CaptureRecord: Codable, Identifiable, Equatable {
         case .recording:
             status = .interrupted
             wasInterrupted = true
-            errorMessage = "انتهى التطبيق أثناء التسجيل؛ قد يكون ملف الصوت ناقصاً أو غير قابل للتشغيل."
+            errorMessage = "The app closed while recording. The audio file may be incomplete or unplayable."
             return true
         case .transcribing:
             status = .pendingTranscription

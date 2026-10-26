@@ -33,17 +33,17 @@ actor WhisperTranscriber {
         var errorDescription: String? {
             switch self {
             case .modelMissing:
-                return "نموذج Whisper المصري المضمّن غير موجود داخل التطبيق. الصوت محفوظ؛ يلزم إصلاح نسخة التطبيق."
+                return "The bundled Whisper model is missing. Your audio is saved; install a repaired app build."
             case .modelLoadFailed:
-                return "تعذر تحميل نموذج Whisper المضمّن. الصوت محفوظ ويمكن إعادة المحاولة."
+                return "Could not load the bundled Whisper model. Your audio is saved; you can retry."
             case .notMultilingual:
-                return "النموذج المضمّن ليس multilingual؛ لن نستخدمه لملف ar+en. الصوت محفوظ."
+                return "The bundled model does not support multiple languages. Your audio is saved."
             case .audioFormat(let detail):
-                return "تعذر تحويل الصوت إلى 16 kHz mono لـWhisper: \(detail). الصوت الأصلي محفوظ."
+                return "Could not convert audio to 16 kHz mono for Whisper: \(detail). Your original audio is saved."
             case .audioTooLong(let minutes):
-                return "التسجيل أطول من \(minutes) دقيقة؛ لم نقصّه. الصوت الأصلي محفوظ."
+                return "Recording exceeds \(minutes) minutes. It was not trimmed; your original audio is saved."
             case .inferenceFailed(let code):
-                return "فشل Whisper أثناء التفريغ (whisper_full = \(code)). الصوت الأصلي محفوظ."
+                return "Whisper transcription failed (code \(code)). Your original audio is saved."
             }
         }
     }

@@ -79,17 +79,17 @@ extension OrganizationKind {
 }
 
 private func shortDateTime(_ date: Date) -> String {
-    date.formatted(date: .abbreviated, time: .shortened)
+    date.formatted(.dateTime.month(.abbreviated).day().year().hour().minute().locale(Locale(identifier: "en_US")))
 }
 
 private func captureStatusLabel(_ status: CaptureStatus) -> String {
     switch status {
-    case .recording: return "يسجّل"
-    case .interrupted: return "انقطع"
-    case .pendingTranscription: return "بانتظار التفريغ"
-    case .transcribing: return "جاري التفريغ"
-    case .transcribed: return "تم التفريغ"
-    case .failed: return "فشل"
+    case .recording: return "Recording"
+    case .interrupted: return "Interrupted"
+    case .pendingTranscription: return "Waiting to transcribe"
+    case .transcribing: return "Transcribing"
+    case .transcribed: return "Transcribed"
+    case .failed: return "Failed"
     }
 }
 
@@ -108,9 +108,9 @@ struct StorageBanner: View {
 
     var body: some View {
         if let error = items.storageError {
-            banner(title: "الحفظ متوقف", message: error, color: .red, symbol: "exclamationmark.octagon.fill")
+            banner(title: "Saving is paused", message: error, color: .red, symbol: "exclamationmark.octagon.fill")
         } else if let error = items.saveError {
-            banner(title: "تعذّر حفظ آخر تغيير", message: error, color: Theme.warn, symbol: "exclamationmark.triangle.fill")
+            banner(title: "Could not save the last change", message: error, color: Theme.warn, symbol: "exclamationmark.triangle.fill")
         }
     }
 
@@ -176,17 +176,17 @@ struct OrganizerShell: View {
     var body: some View {
         TabView(selection: $tab) {
             HomeScreen(model: model, dock: dock, openCommand: { showCommand = true })
-                .tabItem { Label("اليوم", systemImage: "sun.max").accessibilityIdentifier("tab.home") }
+                .tabItem { Label("Today", systemImage: "sun.max").accessibilityIdentifier("tab.home") }
                 .tag(OrganizerTab.home)
             LibraryScreen(dock: dock)
-                .tabItem { Label("المكتبة", systemImage: "books.vertical").accessibilityIdentifier("tab.library") }
+                .tabItem { Label("Library", systemImage: "books.vertical").accessibilityIdentifier("tab.library") }
                 .tag(OrganizerTab.library)
             ExpensesScreen()
                 .safeAreaInset(edge: .bottom, spacing: 0) { dock }
-                .tabItem { Label("المصاريف", systemImage: "creditcard").accessibilityIdentifier("tab.expenses") }
+                .tabItem { Label("Expenses", systemImage: "creditcard").accessibilityIdentifier("tab.expenses") }
                 .tag(OrganizerTab.expenses)
             SettingsScreen(model: model, dock: dock)
-                .tabItem { Label("الإعدادات", systemImage: "gearshape").accessibilityIdentifier("tab.settings") }
+                .tabItem { Label("Settings", systemImage: "gearshape").accessibilityIdentifier("tab.settings") }
                 .tag(OrganizerTab.settings)
         }
         .tint(Theme.teal)
@@ -232,7 +232,7 @@ struct RecordDock: View {
                     .frame(width: 48, height: 48)
                     .background(Theme.mint, in: Circle())
             }
-            .accessibilityLabel("اكتب أمراً")
+            .accessibilityLabel("Type a command")
             .accessibilityIdentifier("action.type")
 
             statusView
@@ -245,7 +245,7 @@ struct RecordDock: View {
                     .frame(width: 60, height: 60)
                     .background(model.isRecording ? Color.red : Theme.teal, in: Circle())
             }
-            .accessibilityLabel(model.isRecording ? "التسجيل جارٍ، افتح شاشة التسجيل" : "ابدأ التسجيل")
+            .accessibilityLabel(model.isRecording ? "Recording in progress. Open recording controls." : "Record")
             .accessibilityIdentifier("action.record")
         }
         .padding(.horizontal, 14)
@@ -260,21 +260,21 @@ struct RecordDock: View {
     private var statusView: some View {
         switch model.status {
         case .idle:
-            line("اضغط للتسجيل أو اكتب أمراً", color: .secondary)
+            line("Tap to record or type a command", color: .secondary)
         case .waitingToStart:
-            line("بانتظار بدء التسجيل…", color: .secondary)
+            line("Waiting to start recording…", color: .secondary)
         case .recording:
             if let active = model.activeRecord {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(active.recordedAt, style: .timer)
                         .font(.title3.monospacedDigit().weight(.semibold))
                         .foregroundStyle(Theme.ink)
-                    Text("جاري التسجيل").font(.caption).foregroundStyle(.red)
+                    Text("Recording").font(.caption).foregroundStyle(.red)
                 }
                 .accessibilityElement(children: .combine)
             }
         case .processing:
-            line("جاري التفريغ المحلي…", color: .secondary)
+            line("Transcribing on device…", color: .secondary)
         case .saved(let message):
             line(message, color: .secondary)
         case .failed(let message):
@@ -302,7 +302,7 @@ struct RecordingSheet: View {
                     stateView
                     if !model.isRecording, !model.isWaitingToStart, let latest = model.records.first {
                         VStack(alignment: .leading, spacing: 8) {
-                            SectionTitle(title: "آخر تسجيل", symbol: "waveform")
+                            SectionTitle(title: "Latest recording", symbol: "waveform")
                             RecordingCard(model: model, recordID: latest.id)
                         }
                     }
@@ -310,10 +310,10 @@ struct RecordingSheet: View {
                 .padding(16)
             }
             .background(Theme.surface)
-            .navigationTitle("التسجيل")
+            .navigationTitle("Recording")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("إغلاق") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
             }
         }
         .interactiveDismissDisabled(model.isRecording)
@@ -326,15 +326,15 @@ struct RecordingSheet: View {
         switch model.status {
         case .idle:
             VStack(spacing: 12) {
-                Text("جاهز. اضغط لبدء تسجيل جديد.").foregroundStyle(.secondary)
+                Text("Ready. Tap to start a recording.").foregroundStyle(.secondary)
                 startButton
             }
         case .waitingToStart:
             VStack(spacing: 12) {
                 ProgressView()
-                Text("بانتظار فتح التطبيق وإذن الميكروفون؛ التسجيل لم يبدأ بعد.")
+                Text("Waiting for the app and microphone permission. Recording has not started.")
                     .multilineTextAlignment(.center)
-                Button("إلغاء الطلب") { model.cancelPendingStart() }
+                Button("Cancel request") { model.cancelPendingStart() }
                     .buttonStyle(.bordered)
                     .accessibilityIdentifier("recording.cancel")
             }
@@ -344,8 +344,8 @@ struct RecordingSheet: View {
         case .processing:
             VStack(spacing: 12) {
                 ProgressView()
-                Text("جاري التفريغ المحلي على الجهاز…").font(.headline)
-                Text("قد يستغرق وقتاً أطول للتسجيلات الطويلة. التفريغ يتوقف مؤقتاً إذا غادرت التطبيق ويكمل عند عودتك.")
+                Text("Transcribing on this device…").font(.headline)
+                Text("Longer recordings may take more time. Transcription pauses when you leave the app and resumes when you return.")
                     .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
             }
             .organizerCard()
@@ -383,15 +383,15 @@ struct RecordingSheet: View {
                 Text(active.recordedAt, style: .timer)
                     .font(.system(size: 44, weight: .semibold, design: .rounded).monospacedDigit())
                     .foregroundStyle(Theme.ink)
-                    .accessibilityLabel("مدة التسجيل")
+                    .accessibilityLabel("Recording duration")
             }
-            Text("جاري التسجيل. اضغط إيقاف عند الانتهاء.").font(.subheadline).foregroundStyle(.secondary)
-            Text("التفريغ المحلي يدعم تسجيلات حتى 30 دقيقة.")
+            Text("Recording. Tap Stop when you are finished.").font(.subheadline).foregroundStyle(.secondary)
+            Text("On-device transcription supports recordings up to 30 minutes.")
                 .font(.footnote).foregroundStyle(.secondary)
             Button {
                 model.stopRecording()
             } label: {
-                Label("إيقاف", systemImage: "stop.fill")
+                Label("Stop", systemImage: "stop.fill")
                     .font(.title3.weight(.semibold))
                     .frame(maxWidth: .infinity, minHeight: 56)
             }
@@ -406,7 +406,7 @@ struct RecordingSheet: View {
         Button {
             model.requestStart()
         } label: {
-            Label("تسجيل جديد", systemImage: "mic.fill").frame(maxWidth: .infinity, minHeight: 44)
+            Label("Record", systemImage: "mic.fill").frame(maxWidth: .infinity, minHeight: 44)
         }
         .buttonStyle(.borderedProminent)
         .accessibilityIdentifier("recording.start")
@@ -438,7 +438,7 @@ struct RecordingCard: View {
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
-                    Text(record.status == .failed ? "لا يوجد نص." : "لا يوجد نص بعد.")
+                    Text(record.status == .failed ? "No transcript." : "No transcript yet.")
                         .foregroundStyle(.secondary)
                 }
                 if let error = record.errorMessage {
@@ -450,7 +450,7 @@ struct RecordingCard: View {
                     Button {
                         model.togglePlayback(record)
                     } label: {
-                        Label(model.playingID == record.id ? "إيقاف" : "تشغيل الصوت",
+                        Label(model.playingID == record.id ? "Stop" : "Play audio",
                               systemImage: model.playingID == record.id ? "stop.fill" : "play.fill")
                     }
                     .disabled(model.isRecording)
@@ -459,7 +459,7 @@ struct RecordingCard: View {
                     Button {
                         model.retryTranscription(record.id)
                     } label: {
-                        Label("أعد التفريغ", systemImage: "arrow.clockwise")
+                        Label("Transcribe again", systemImage: "arrow.clockwise")
                     }
                     .disabled(!record.canRetry)
                     .accessibilityIdentifier("recording.retry")
@@ -469,10 +469,10 @@ struct RecordingCard: View {
 
                 HStack {
                     if let transcript = record.transcript {
-                        ShareLink(item: transcript) { Label("مشاركة النص", systemImage: "square.and.arrow.up") }
+                        ShareLink(item: transcript) { Label("Share text", systemImage: "square.and.arrow.up") }
                     }
                     if let audio = model.audioURL(for: record) {
-                        ShareLink(item: audio) { Label("مشاركة الصوت", systemImage: "waveform") }
+                        ShareLink(item: audio) { Label("Share audio", systemImage: "waveform") }
                     }
                 }
                 .font(.footnote)
@@ -481,11 +481,11 @@ struct RecordingCard: View {
                     ReceiptCard(receipt: receipt)
                 } else if let transcript = record.transcript, !transcript.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("لم يُنظَّم هذا النص بعد.").font(.footnote).foregroundStyle(.secondary)
+                        Text("This text has not been organized yet.").font(.footnote).foregroundStyle(.secondary)
                         Button {
                             organize(record, text: transcript)
                         } label: {
-                            Label("نظّم هذا النص", systemImage: "wand.and.stars")
+                            Label("Organize this text", systemImage: "wand.and.stars")
                         }
                         .buttonStyle(.bordered)
                         .disabled(organizing || items.storageError != nil)
@@ -497,12 +497,12 @@ struct RecordingCard: View {
             }
             .organizerCard()
         } else {
-            Text("التسجيل غير موجود.").foregroundStyle(.secondary).organizerCard()
+            Text("Recording not found.").foregroundStyle(.secondary).organizerCard()
         }
     }
 
     private func durationText(_ record: CaptureRecord) -> String {
-        "المدة \(record.durationSeconds.formatted(.number.precision(.fractionLength(1)))) ث"
+        "Duration: \(record.durationSeconds.formatted(.number.precision(.fractionLength(1)).locale(Locale(identifier: "en_US")))) s"
     }
 
     private func organize(_ record: CaptureRecord, text: String) {
@@ -529,7 +529,7 @@ struct RecordingDetailScreen: View {
             RecordingCard(model: model, recordID: recordID).padding(16)
         }
         .background(Theme.surface)
-        .navigationTitle("التسجيل")
+        .navigationTitle("Recording")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -549,11 +549,11 @@ struct RecordingsListScreen: View {
         }
         .overlay {
             if model.records.isEmpty {
-                ContentUnavailableView("لا توجد تسجيلات", systemImage: "waveform",
-                                       description: Text("اضغط زر الميكروفون لتسجيل أول ملاحظة."))
+                ContentUnavailableView("No recordings", systemImage: "waveform",
+                                       description: Text("Tap the microphone to record your first note."))
             }
         }
-        .navigationTitle("التسجيلات")
+        .navigationTitle("Recordings")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -592,9 +592,9 @@ struct ReceiptCard: View {
 
     private var statusLabel: String {
         switch receipt.status {
-        case .applied: return "تم التنظيم"
-        case .review: return "بانتظار المراجعة"
-        case .undone: return "تم التراجع"
+        case .applied: return "Organized"
+        case .review: return "Needs review"
+        case .undone: return "Undone"
         }
     }
 
@@ -623,14 +623,14 @@ struct ReceiptCard: View {
             }
             Text(receipt.summary).font(.callout).textSelection(.enabled)
             if let original = receipt.originalText {
-                DisclosureGroup("النص الأصلي") { Text(original).textSelection(.enabled) }
+                DisclosureGroup("Original text") { Text(original).textSelection(.enabled) }
                     .font(.footnote)
             }
             if receipt.status != .undone {
                 Button(role: .destructive) {
                     confirming = true
                 } label: {
-                    Label("تراجع عن هذا التنظيم", systemImage: "arrow.uturn.backward")
+                    Label("Undo organization", systemImage: "arrow.uturn.backward")
                 }
                 .buttonStyle(.bordered)
                 .font(.callout)
@@ -641,8 +641,8 @@ struct ReceiptCard: View {
             }
         }
         .organizerCard()
-        .confirmationDialog("التراجع عن هذا التنظيم؟", isPresented: $confirming, titleVisibility: .visible) {
-            Button("تراجع", role: .destructive) {
+        .confirmationDialog("Undo this organization?", isPresented: $confirming, titleVisibility: .visible) {
+            Button("Undo", role: .destructive) {
                 do {
                     try CalendarBridge.shared.undoSource(receipt.id)
                     error = nil
@@ -650,9 +650,9 @@ struct ReceiptCard: View {
                     self.error = error.localizedDescription
                 }
             }
-            Button("إلغاء", role: .cancel) {}
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("يزيل ما أُنشئ من هذا المصدر، بما فيه أحداث التقويم التي أنشأها التطبيق. التسجيل والنص الأصلي يبقيان كما هما.")
+            Text("Removes items created from this source, including calendar events created by the app. The recording and original text stay unchanged.")
         }
     }
 }
@@ -699,7 +699,7 @@ struct CommandSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     StorageBanner()
-                    TextField("اكتب أمرك هنا…", text: $text, axis: .vertical)
+                    TextField("Type your command…", text: $text, axis: .vertical)
                         .focused($editingCommand)
                         .disabled(busy)
                         .lineLimit(3...8)
@@ -710,7 +710,7 @@ struct CommandSheet: View {
                     Button(action: submit) {
                         HStack {
                             if busy { ProgressView() }
-                            Text(busy ? "جاري التنظيم…" : "نظّم الأمر").fontWeight(.semibold)
+                            Text(busy ? "Organizing…" : "Organize command").fontWeight(.semibold)
                         }
                         .frame(maxWidth: .infinity, minHeight: 44)
                     }
@@ -724,9 +724,9 @@ struct CommandSheet: View {
                     if let receipt { ReceiptCard(receipt: receipt) }
 
                     VStack(alignment: .leading, spacing: 8) {
-                        SectionTitle(title: "أمثلة", symbol: "lightbulb")
+                        SectionTitle(title: "Examples", symbol: "lightbulb")
                         CommandExamples()
-                        Text("التنظيم يتم على الجهاز بقواعد ثابتة. الأوامر الغامضة تذهب إلى قائمة المراجعة بدل أن تُنفَّذ.")
+                        Text("Organization runs on device using defined rules. Unclear commands go to review instead of being carried out.")
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                     .padding(.top, 6)
@@ -734,10 +734,10 @@ struct CommandSheet: View {
                 .padding(16)
             }
             .background(Theme.surface)
-            .navigationTitle("أمر مكتوب")
+            .navigationTitle("Typed command")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("إغلاق") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
             }
         }
         .presentationDetents([.large])
@@ -791,13 +791,13 @@ struct HomeScreen: View {
             let scheduled = r.status == .scheduled
             entries.append(UpcomingEntry(id: r.id, title: r.title, date: r.scheduledDate,
                                          symbol: scheduled ? "bell.fill" : "bell.slash",
-                                         note: scheduled ? "تذكير مجدول على الجهاز" : "تذكير محفوظ — لم يُجدول بعد",
+                                         note: scheduled ? "Reminder scheduled on this device" : "Reminder saved, not scheduled yet",
                                          isWarning: !scheduled, libraryID: nil))
         }
         for c in items.libraryItems where c.kind == .calendar && !c.isCompleted {
             if let start = c.dueDate, (c.endDate ?? start) > now {
                 entries.append(UpcomingEntry(id: c.id, title: c.title, date: start, symbol: "calendar",
-                                             note: "حدث", isWarning: false, libraryID: c.id))
+                                             note: "Event", isWarning: false, libraryID: c.id))
             }
         }
         return Array(entries.sorted { $0.date < $1.date }.prefix(5))
@@ -825,7 +825,7 @@ struct HomeScreen: View {
                 .padding(16)
             }
             .background(Theme.surface)
-            .navigationTitle("اليوم")
+            .navigationTitle("Today")
             .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom, spacing: 0) { dock }
         }
@@ -836,10 +836,9 @@ struct HomeScreen: View {
             Text(Date(), format: .dateTime.weekday(.wide).day().month(.wide))
                 .font(.subheadline).foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text("ذاكرة").font(.title.bold()).foregroundStyle(Theme.ink)
-                Text("MixCapture").font(.footnote).foregroundStyle(.secondary)
+                Text("MixCapture").font(.title.bold()).foregroundStyle(Theme.ink)
             }
-            Text("سجّل بصوتك أو اكتب، وستجد كل شيء منظماً هنا.")
+            Text("Record or type, then find your organized items here.")
                 .font(.subheadline).foregroundStyle(.secondary)
         }
     }
@@ -854,9 +853,9 @@ struct HomeScreen: View {
                     .font(.title2)
                     .foregroundStyle(count > 0 ? Theme.warn : Theme.teal)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(count > 0 ? "بانتظار مراجعتك" : "لا شيء بانتظار المراجعة")
+                    Text(count > 0 ? "Needs your review" : "Nothing to review")
                         .font(.headline).foregroundStyle(Theme.ink)
-                    Text(count > 0 ? "\(count) عنصر يحتاج تأكيداً قبل الحفظ" : "الأوامر الغامضة ستظهر هنا")
+                    Text(count > 0 ? "\(count) to review before saving" : "Unclear commands will appear here")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -872,27 +871,27 @@ struct HomeScreen: View {
         Button(action: openCommand) {
             HStack(spacing: 10) {
                 Image(systemName: "keyboard").foregroundStyle(Theme.teal)
-                Text("اكتب أمراً سريعاً…").foregroundStyle(.secondary)
+                Text("Type a quick command…").foregroundStyle(.secondary)
                 Spacer()
             }
             .organizerCard()
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("اكتب أمراً سريعاً")
+        .accessibilityLabel("Type a quick command")
         .accessibilityIdentifier("home.quickCommand")
     }
 
     private var upcomingCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                SectionTitle(title: "القادم", symbol: "clock")
+                SectionTitle(title: "Coming up", symbol: "clock")
                 Spacer()
-                NavigationLink("كل التذكيرات") { RemindersScreen(embedded: true) }
+                NavigationLink("All reminders") { RemindersScreen(embedded: true) }
                     .font(.subheadline)
                     .accessibilityIdentifier("home.reminders")
             }
             if upcoming.isEmpty {
-                Text("لا توجد تذكيرات أو أحداث قادمة.").font(.subheadline).foregroundStyle(.secondary)
+                Text("No upcoming reminders or events.").font(.subheadline).foregroundStyle(.secondary)
             }
             ForEach(upcoming) { entry in
                 if let libraryID = entry.libraryID {
@@ -924,13 +923,13 @@ struct HomeScreen: View {
     private var recordingsCard: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                SectionTitle(title: "آخر التسجيلات", symbol: "waveform")
+                SectionTitle(title: "Recent recordings", symbol: "waveform")
                 Spacer()
-                NavigationLink("الكل") { RecordingsListScreen(model: model) }
+                NavigationLink("All") { RecordingsListScreen(model: model) }
                     .font(.subheadline)
             }
             if model.records.isEmpty {
-                Text("لا توجد تسجيلات بعد. اضغط زر الميكروفون للبدء.")
+                Text("No recordings yet. Tap the microphone to begin.")
                     .font(.subheadline).foregroundStyle(.secondary)
             }
             ForEach(model.records.prefix(3)) { record in
@@ -950,7 +949,7 @@ struct HomeScreen: View {
     private var receiptsCard: some View {
         if !recentReceipts.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                SectionTitle(title: "آخر ما تم تنظيمه", symbol: "square.stack.3d.up")
+                SectionTitle(title: "Recently organized", symbol: "square.stack.3d.up")
                 ForEach(recentReceipts) { ReceiptCard(receipt: $0) }
             }
         }
@@ -1000,19 +999,19 @@ struct LibraryScreen: View {
                 list
             }
             .background(Theme.surface)
-            .navigationTitle("المكتبة")
+            .navigationTitle("Library")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $search, prompt: "ابحث في المكتبة")
+            .searchable(text: $search, prompt: "Search your library")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("إضافة عنصر", systemImage: "plus") { showingAdd = true }
+                    Button("Add item", systemImage: "plus") { showingAdd = true }
                         .disabled(items.storageError != nil)
                         .accessibilityIdentifier("library.add")
                 }
             }
             .sheet(isPresented: $showingAdd) { LibraryEditor(existing: nil, initialKind: kindFilter ?? .note) }
-            .alert("تعذّر الحفظ", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
-                Button("حسناً", role: .cancel) {}
+            .alert("Could not save", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
+                Button("OK", role: .cancel) {}
             } message: {
                 Text(error ?? "")
             }
@@ -1023,7 +1022,7 @@ struct LibraryScreen: View {
     private var chips: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                chip(title: "الكل", symbol: "square.grid.2x2", selected: kindFilter == nil, id: "library.filter.all") {
+                chip(title: "All", symbol: "square.grid.2x2", selected: kindFilter == nil, id: "library.filter.all") {
                     kindFilter = nil
                 }
                 ForEach(OrganizerKind.allCases) { kind in
@@ -1058,12 +1057,12 @@ struct LibraryScreen: View {
     @ViewBuilder
     private var list: some View {
         if items.libraryItems.isEmpty {
-            ContentUnavailableView("المكتبة فارغة", systemImage: "books.vertical",
-                                   description: Text("سجّل بصوتك أو اكتب أمراً، أو أضف عنصراً يدوياً بزر +."))
+            ContentUnavailableView("Your library is empty", systemImage: "books.vertical",
+                                   description: Text("Record or type a command, or tap + to add an item."))
                 .frame(maxHeight: .infinity)
         } else if filtered.isEmpty {
             if search.isEmpty {
-                ContentUnavailableView("لا توجد عناصر في هذا القسم", systemImage: "tray")
+                ContentUnavailableView("No items in this section", systemImage: "tray")
                     .frame(maxHeight: .infinity)
             } else {
                 ContentUnavailableView.search(text: search).frame(maxHeight: .infinity)
@@ -1074,7 +1073,7 @@ struct LibraryScreen: View {
                     Section {
                         ForEach(group.rows) { row($0) }
                     } header: {
-                        Label(group.name.isEmpty ? "بدون مجموعة" : group.name,
+                        Label(group.name.isEmpty ? "Ungrouped" : group.name,
                               systemImage: group.name.isEmpty ? "tray" : "folder")
                     }
                 }
@@ -1096,7 +1095,7 @@ struct LibraryScreen: View {
                 }
                 .buttonStyle(.borderless)
                 .disabled(items.storageError != nil)
-                .accessibilityLabel("\(item.title) — \(item.isCompleted ? "إلغاء الإكمال" : "إكمال")")
+                .accessibilityLabel("\(item.title) — \(item.isCompleted ? "Mark incomplete" : "Mark complete")")
             } else {
                 Image(systemName: item.kind.uiSymbol).foregroundStyle(Theme.teal).frame(width: 24)
                     .accessibilityHidden(true)
@@ -1106,7 +1105,7 @@ struct LibraryScreen: View {
             } label: {
                 LibraryRowText(item: item)
             }
-            .accessibilityLabel("افتح \(item.title)")
+            .accessibilityLabel("Open \(item.title)")
             .accessibilityIdentifier("library.open.\(item.id.uuidString)")
         }
     }
@@ -1114,7 +1113,7 @@ struct LibraryScreen: View {
 
 private func scheduleText(_ item: OrganizerItem) -> String? {
     switch (item.dueDate, item.endDate) {
-    case (let start?, let end?): return "\(shortDateTime(start)) ← \(shortDateTime(end))"
+    case (let start?, let end?): return "\(shortDateTime(start)) → \(shortDateTime(end))"
     case (let start?, nil): return shortDateTime(start)
     default: return nil
     }
@@ -1155,9 +1154,9 @@ struct LibraryDetailView: View {
 
     private func removalNote(_ item: OrganizerItem) -> String {
         if item.kind == .calendar || !(item.externalCalendarID ?? "").isEmpty {
-            return "يُحذف من التطبيق فقط. الحدث الموجود في تقويم iPhone يبقى كما هو ويمكنك حذفه من تطبيق التقويم."
+            return "This removes the item from the app only. Its iPhone calendar event stays in place and can be deleted in Calendar."
         }
-        return "يُحذف هذا العنصر من التطبيق. التسجيل والنص الأصلي لا يتأثران."
+        return "This removes the item from the app. The recording and original text stay unchanged."
     }
 
     var body: some View {
@@ -1169,7 +1168,7 @@ struct LibraryDetailView: View {
                         header(item)
                         if !item.body.isEmpty {
                             VStack(alignment: .leading, spacing: 6) {
-                                SectionTitle(title: "النص الأصلي")
+                                SectionTitle(title: "Original text")
                                 Text(item.body).textSelection(.enabled)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
@@ -1177,7 +1176,7 @@ struct LibraryDetailView: View {
                         }
                         if !item.ingredients.isEmpty {
                             VStack(alignment: .leading, spacing: 6) {
-                                SectionTitle(title: "المكونات", symbol: "list.bullet")
+                                SectionTitle(title: "Ingredients", symbol: "list.bullet")
                                 ForEach(Array(item.ingredients.enumerated()), id: \.offset) { _, line in
                                     Label(line, systemImage: "circle.fill")
                                         .labelStyle(BulletLabelStyle())
@@ -1188,7 +1187,7 @@ struct LibraryDetailView: View {
                         }
                         if !item.steps.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
-                                SectionTitle(title: "الخطوات", symbol: "list.number")
+                                SectionTitle(title: "Steps", symbol: "list.number")
                                 ForEach(Array(item.steps.enumerated()), id: \.offset) { index, line in
                                     HStack(alignment: .top, spacing: 8) {
                                         Text("\(index + 1).").foregroundStyle(Theme.teal).monospacedDigit()
@@ -1202,14 +1201,14 @@ struct LibraryDetailView: View {
                         Button(role: .destructive) {
                             confirmingDelete = true
                         } label: {
-                            Label("حذف من التطبيق", systemImage: "trash").frame(maxWidth: .infinity, minHeight: 44)
+                            Label("Delete from app", systemImage: "trash").frame(maxWidth: .infinity, minHeight: 44)
                         }
                         .buttonStyle(.bordered)
                         .disabled(items.storageError != nil)
                         .accessibilityIdentifier("library.delete")
-                        .confirmationDialog("حذف من التطبيق؟", isPresented: $confirmingDelete, titleVisibility: .visible) {
-                            Button("حذف من التطبيق", role: .destructive) { delete() }
-                            Button("إلغاء", role: .cancel) {}
+                        .confirmationDialog("Delete from app?", isPresented: $confirmingDelete, titleVisibility: .visible) {
+                            Button("Delete from app", role: .destructive) { delete() }
+                            Button("Cancel", role: .cancel) {}
                         } message: {
                             Text(removalNote(item))
                         }
@@ -1218,18 +1217,18 @@ struct LibraryDetailView: View {
                 }
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("تعديل") { editing = true }
+                        Button("Edit") { editing = true }
                             .disabled(items.storageError != nil)
                             .accessibilityIdentifier("library.edit")
                     }
                 }
                 .sheet(isPresented: $editing) { LibraryEditor(existing: item, initialKind: item.kind) }
             } else {
-                ContentUnavailableView("العنصر غير موجود", systemImage: "questionmark.folder")
+                ContentUnavailableView("Item not found", systemImage: "questionmark.folder")
             }
         }
         .background(Theme.surface)
-        .navigationTitle("التفاصيل")
+        .navigationTitle("Details")
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -1250,7 +1249,7 @@ struct LibraryDetailView: View {
                 Button {
                     do { try items.toggleLibrary(id: item.id); error = nil } catch { self.error = error.localizedDescription }
                 } label: {
-                    Label(item.isCompleted ? "إلغاء الإكمال" : "تم الإكمال",
+                    Label(item.isCompleted ? "Mark incomplete" : "Mark complete",
                           systemImage: item.isCompleted ? "arrow.uturn.backward" : "checkmark.circle")
                 }
                 .buttonStyle(.borderedProminent)
@@ -1258,7 +1257,7 @@ struct LibraryDetailView: View {
                 .accessibilityIdentifier("library.toggle")
             }
             if let ext = item.externalCalendarID, !ext.isEmpty {
-                Text("مرتبط بحدث في تقويم iPhone. تعديل الموعد هنا لا يغيّر ذلك الحدث تلقائياً.")
+                Text("Linked to an iPhone calendar event. Editing the time here does not automatically update that event.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
@@ -1319,10 +1318,10 @@ struct LibraryEditor: View {
     }
 
     private var validation: String? {
-        if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "العنوان مطلوب." }
+        if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "A title is required." }
         if kind == .calendar {
-            guard let start, let end else { return "اختر وقت البداية والنهاية للحدث." }
-            if end <= start { return "وقت النهاية يجب أن يكون بعد البداية." }
+            guard let start, let end else { return "Choose the event start and end times." }
+            if end <= start { return "The end time must be after the start time." }
         }
         return nil
     }
@@ -1335,16 +1334,16 @@ struct LibraryEditor: View {
                 }
                 Section {
                     if existing == nil {
-                        Picker("النوع", selection: $kind) {
+                        Picker("Type", selection: $kind) {
                             ForEach(OrganizerKind.allCases) { Label($0.label, systemImage: $0.uiSymbol).tag($0) }
                         }
                         .pickerStyle(.menu)
                         .accessibilityIdentifier("editor.kind")
                     }
-                    TextField("العنوان", text: $title, axis: .vertical)
+                    TextField("Title", text: $title, axis: .vertical)
                         .accessibilityIdentifier("editor.title")
                     HStack {
-                        TextField("المجموعة أو المشروع (اختياري)", text: $collection)
+                        TextField("Collection or project (optional)", text: $collection)
                         if !collections.isEmpty {
                             Menu {
                                 ForEach(collections, id: \.self) { name in
@@ -1353,40 +1352,40 @@ struct LibraryEditor: View {
                             } label: {
                                 Image(systemName: "folder")
                             }
-                            .accessibilityLabel("اختر مجموعة موجودة")
+                            .accessibilityLabel("Choose an existing collection")
                         }
                     }
                 }
-                Section("النص") {
+                Section("Text") {
                     if existing?.sourceCaptureID != nil {
                         Text(bodyText).textSelection(.enabled)
                     } else {
-                        TextField("التفاصيل", text: $bodyText, axis: .vertical).lineLimit(3...10)
+                        TextField("Details", text: $bodyText, axis: .vertical).lineLimit(3...10)
                     }
                 }
                 if kind == .task {
-                    Section("الموعد") {
-                        OptionalDateRow(title: "تحديد موعد", date: $start)
+                    Section("Date and time") {
+                        OptionalDateRow(title: "Set a date and time", date: $start)
                     }
                 }
                 if kind == .calendar {
                     Section {
-                        OptionalDateRow(title: "تحديد وقت البداية", date: $start)
-                        OptionalDateRow(title: "تحديد وقت النهاية", date: $end,
+                        OptionalDateRow(title: "Set start time", date: $start)
+                        OptionalDateRow(title: "Set end time", date: $end,
                                         fallback: { (start ?? Date()).addingTimeInterval(3600) })
                     } header: {
-                        Text("وقت الحدث")
+                        Text("Event time")
                     } footer: {
-                        Text("الحدث يحتاج بداية ونهاية تختارهما بنفسك.")
+                        Text("Choose both the start and end times for the event.")
                     }
                 }
                 if kind == .recipe {
                     Section {
-                        TextField("المكونات، واحد في كل سطر", text: $ingredientsText, axis: .vertical).lineLimit(3...12)
-                    } header: { Text("المكونات") }
+                        TextField("Ingredients, one per line", text: $ingredientsText, axis: .vertical).lineLimit(3...12)
+                    } header: { Text("Ingredients") }
                     Section {
-                        TextField("الخطوات، واحدة في كل سطر", text: $stepsText, axis: .vertical).lineLimit(3...12)
-                    } header: { Text("الخطوات") }
+                        TextField("Steps, one per line", text: $stepsText, axis: .vertical).lineLimit(3...12)
+                    } header: { Text("Steps") }
                 }
                 if let message = validation {
                     Section { Text(message).font(.footnote).foregroundStyle(.secondary) }
@@ -1395,12 +1394,12 @@ struct LibraryEditor: View {
                     Section { Text(error).foregroundStyle(.red) }
                 }
             }
-            .navigationTitle(existing == nil ? "عنصر جديد" : "تعديل")
+            .navigationTitle(existing == nil ? "New item" : "Edit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("إلغاء") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("حفظ", action: save)
+                    Button("Save", action: save)
                         .disabled(validation != nil || items.storageError != nil)
                         .accessibilityIdentifier("editor.save")
                 }
@@ -1448,8 +1447,8 @@ struct ReviewQueueScreen: View {
             }
             if items.reviewItems.isEmpty {
                 Section {
-                    ContentUnavailableView("لا شيء بانتظار المراجعة", systemImage: "checkmark.seal",
-                                           description: Text("الأوامر الغامضة تظهر هنا قبل حفظها."))
+                    ContentUnavailableView("Nothing to review", systemImage: "checkmark.seal",
+                                           description: Text("Unclear commands appear here before they are saved."))
                 }
             } else {
                 Section {
@@ -1468,18 +1467,18 @@ struct ReviewQueueScreen: View {
                         }
                     }
                 } footer: {
-                    Text("راجع كل عنصر ثم احفظه ليدخل المكتبة. لا يوجد تجاهل للعناصر من هنا؛ يمكنك التراجع عن مصدرها من البطاقات أدناه.")
+                    Text("Review and save each item to add it to your library. To remove a source and its items, use Undo on its card below.")
                 }
             }
             if !reviewReceipts.isEmpty {
-                Section("مصادر المراجعة") {
+                Section("Sources needing review") {
                     ForEach(reviewReceipts) { ReceiptCard(receipt: $0).listRowInsets(EdgeInsets()) }
                 }
             }
         }
         .scrollContentBackground(.hidden)
         .background(Theme.surface)
-        .navigationTitle("المراجعة")
+        .navigationTitle("Review")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -1504,15 +1503,15 @@ struct ReviewEditor: View {
     }
 
     private var validation: String? {
-        if draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "العنوان مطلوب." }
+        if draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "A title is required." }
         switch draft.kind {
         case .expense:
-            if parseAmount(draft.amountText) == nil { return "أدخل مبلغاً صالحاً (حتى خانتين عشريتين)." }
+            if parseAmount(draft.amountText) == nil { return "Enter a valid amount with up to two decimal places." }
         case .reminder:
-            if draft.dueDate == nil { return "اختر موعد التذكير." }
+            if draft.dueDate == nil { return "Choose a reminder date." }
         case .calendar:
-            guard let start = draft.dueDate, let end = draft.endDate else { return "اختر البداية والنهاية للحدث." }
-            if end <= start { return "وقت النهاية يجب أن يكون بعد البداية." }
+            guard let start = draft.dueDate, let end = draft.endDate else { return "Choose the event start and end times." }
+            if end <= start { return "The end time must be after the start time." }
         default: break
         }
         return nil
@@ -1524,52 +1523,52 @@ struct ReviewEditor: View {
                 Section { StorageBanner().listRowInsets(EdgeInsets()) }
             }
             if let reason = draft.reason {
-                Section("سبب المراجعة") {
+                Section("Why this needs review") {
                     Label(reason, systemImage: "exclamationmark.circle").foregroundStyle(Theme.warn)
                 }
             }
             Section {
-                Picker("النوع", selection: $draft.kind) {
+                Picker("Type", selection: $draft.kind) {
                     ForEach(OrganizationKind.allCases) { Label($0.label, systemImage: $0.uiSymbol).tag($0) }
                 }
-                TextField("العنوان", text: $draft.title, axis: .vertical)
-                TextField("المجموعة أو المشروع (اختياري)", text: $draft.collection)
+                TextField("Title", text: $draft.title, axis: .vertical)
+                TextField("Collection or project (optional)", text: $draft.collection)
             }
-            Section("النص الأصلي") {
+            Section("Original text") {
                 Text(draft.body).textSelection(.enabled)
             }
             if draft.kind == .expense {
-                Section("المصروف") {
-                    DatePicker("تاريخ المصروف", selection: Binding(
+                Section("Expense") {
+                    DatePicker("Expense date", selection: Binding(
                         get: { draft.dueDate ?? draft.createdAt }, set: { draft.dueDate = $0 }),
                                displayedComponents: .date)
-                    TextField("المبلغ (مثال: 120.50)", text: $draft.amountText)
+                    TextField("Amount (e.g. 120.50)", text: $draft.amountText)
                         .keyboardType(.decimalPad)
                         .environment(\.layoutDirection, .leftToRight)
-                    Picker("العملة", selection: $draft.currency) {
+                    Picker("Currency", selection: $draft.currency) {
                         ForEach(Currency.allCases) { Text($0.rawValue).tag($0) }
                     }
                     .pickerStyle(.segmented)
-                    Picker("الفئة", selection: $draft.category) {
+                    Picker("Category", selection: $draft.category) {
                         ForEach(ExpenseCategory.allCases) { Text($0.label).tag($0) }
                     }
                 }
             }
             if draft.kind == .reminder || draft.kind == .task || draft.kind == .calendar {
-                Section("المواعيد") {
-                    OptionalDateRow(title: draft.kind == .calendar ? "تحديد وقت البداية" : "تحديد موعد", date: $draft.dueDate)
+                Section("Dates and times") {
+                    OptionalDateRow(title: draft.kind == .calendar ? "Set start time" : "Set a date and time", date: $draft.dueDate)
                     if draft.kind == .calendar {
-                        OptionalDateRow(title: "تحديد وقت النهاية", date: $draft.endDate,
+                        OptionalDateRow(title: "Set end time", date: $draft.endDate,
                                         fallback: { (draft.dueDate ?? Date()).addingTimeInterval(3600) })
                     }
                 }
             }
             if draft.kind == .recipe || !originalIngredients.isEmpty || !originalSteps.isEmpty {
-                Section("المكونات") {
-                    TextField("واحد في كل سطر", text: $ingredientsText, axis: .vertical).lineLimit(3...12)
+                Section("Ingredients") {
+                    TextField("One per line", text: $ingredientsText, axis: .vertical).lineLimit(3...12)
                 }
-                Section("الخطوات") {
-                    TextField("واحدة في كل سطر", text: $stepsText, axis: .vertical).lineLimit(3...12)
+                Section("Steps") {
+                    TextField("One per line", text: $stepsText, axis: .vertical).lineLimit(3...12)
                 }
             }
             if let message = validation {
@@ -1579,11 +1578,11 @@ struct ReviewEditor: View {
                 Section { Text(error).foregroundStyle(.red).textSelection(.enabled) }
             }
         }
-        .navigationTitle("مراجعة")
+        .navigationTitle("Review")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("حفظ", action: save)
+                Button("Save", action: save)
                     .disabled(saving || validation != nil || items.storageError != nil)
                     .accessibilityIdentifier("review.save")
             }
@@ -1649,17 +1648,17 @@ struct SettingsScreen: View {
                     NavigationLink {
                         ContentView(model: model, embedded: true)
                     } label: {
-                        Label("التشخيص ومحرك التفريغ", systemImage: "stethoscope")
+                        Label("Diagnostics and transcription", systemImage: "stethoscope")
                     }
                     .accessibilityIdentifier("settings.diagnostics")
-                    LabeledContent("الإصدار", value: buildLabel)
+                    LabeledContent("Version", value: buildLabel)
                 } footer: {
-                    Text("MixCapture · ذاكرة")
+                    Text("MixCapture")
                 }
             }
             .scrollContentBackground(.hidden)
             .background(Theme.surface)
-            .navigationTitle("الإعدادات")
+            .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom, spacing: 0) { dock }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
@@ -1673,22 +1672,22 @@ struct SettingsScreen: View {
 
     private var organizationSection: some View {
         Section {
-            Toggle("التنظيم التلقائي بعد التفريغ", isOn: Binding(
+            Toggle("Organize automatically after transcription", isOn: Binding(
                 get: { items.automaticOrganizationEnabled },
                 set: { items.automaticOrganizationEnabled = $0 }
             ))
             .disabled(items.storageError != nil)
             .accessibilityIdentifier("settings.autoOrganize")
         } header: {
-            Text("التنظيم")
+            Text("Organization")
         } footer: {
-            Text("عند التفعيل يُنظَّم النص المفرَّغ على الجهاز بقواعد ثابتة إلى مصروفات وتذكيرات وقوائم ووصفات. الأوامر الغامضة لا تُنفَّذ؛ تنتظر في قائمة المراجعة حتى تؤكدها.")
+            Text("When enabled, on-device rules organize transcripts into expenses, reminders, lists, and recipes. Unclear commands wait for your confirmation in Review.")
         }
     }
 
     private var calendarSection: some View {
         Section {
-            LabeledContent("الحالة", value: bridge.enabled ? "الإضافة التلقائية مفعّلة" : "الإضافة التلقائية متوقفة")
+            LabeledContent("Status", value: bridge.enabled ? "Automatic additions enabled" : "Automatic additions paused")
             if let message = bridge.statusMessage {
                 Text(message).font(.footnote).foregroundStyle(.secondary)
             }
@@ -1696,16 +1695,16 @@ struct SettingsScreen: View {
                 Text(calendarError).font(.footnote).foregroundStyle(.red).textSelection(.enabled)
             }
             if bridge.isBusy {
-                HStack { ProgressView(); Text("جاري المزامنة…").foregroundStyle(.secondary) }
+                HStack { ProgressView(); Text("Syncing…").foregroundStyle(.secondary) }
             }
             if bridge.enabled {
-                Button("قطع الاتصال بالتقويم", role: .destructive) {
+                Button("Disconnect calendar", role: .destructive) {
                     bridge.disconnect()
                     calendarError = nil
                 }
                 .accessibilityIdentifier("settings.calendarDisconnect")
             } else {
-                Button("ربط تقويم iPhone") {
+                Button("Connect iPhone calendar") {
                     Task {
                         do {
                             try await bridge.connectAndSync()
@@ -1719,23 +1718,23 @@ struct SettingsScreen: View {
                 .accessibilityIdentifier("settings.calendarConnect")
             }
         } header: {
-            Text("التقويم")
+            Text("Calendar")
         } footer: {
-            Text("الربط يضيف عنوان الموعد وتوقيته لتقويمك الافتراضي، وقد يزامنه iOS عبر حسابات التقويم المفعّلة. النص الأصلي يبقى داخل MixCapture. التذكيرات إشعارات محلية ولا تُزامَن مع تطبيق التذكيرات.")
+            Text("Connecting adds event titles and times to your default calendar. iOS may sync them through your enabled calendar accounts. Original text stays in MixCapture. Reminders use local notifications and do not sync with Apple Reminders.")
         }
     }
 
     private var backupSection: some View {
         Section {
-            ShareLink(item: OrganizerBackup(contents: items.exportJSON()), preview: SharePreview("نسخة احتياطية MixCapture (JSON)")) {
-                Label("تصدير نسخة احتياطية JSON", systemImage: "square.and.arrow.up")
+            ShareLink(item: OrganizerBackup(contents: items.exportJSON()), preview: SharePreview("MixCapture backup (JSON)")) {
+                Label("Export JSON backup", systemImage: "square.and.arrow.up")
             }
             .disabled(items.storageError != nil)
             .accessibilityIdentifier("settings.backup")
             Button {
                 importing = true
             } label: {
-                Label("استيراد نسخة JSON", systemImage: "square.and.arrow.down")
+                Label("Import JSON backup", systemImage: "square.and.arrow.down")
             }
             .disabled(items.storageError != nil)
             .accessibilityIdentifier("settings.import")
@@ -1745,20 +1744,20 @@ struct SettingsScreen: View {
                     .textSelection(.enabled)
             }
         } header: {
-            Text("النسخ الاحتياطي")
+            Text("Backup")
         } footer: {
-            Text("الاستيراد إضافي: ما هو موجود عندك يبقى كما هو وتُضاف العناصر الجديدة فقط. ملف JSON لا يتضمن الملفات الصوتية. الاستيراد نفسه لا يُنشئ إشعارات أو أحداث تقويم.")
+            Text("Import only adds new items; existing items stay unchanged. JSON does not include audio files. Importing does not create notifications or calendar events.")
         }
     }
 
     private var shortcutSection: some View {
         Section {
             VStack(alignment: .leading, spacing: 8) {
-                Text("للتسجيل بنقرتين على ظهر الجهاز:").font(.subheadline.weight(.semibold))
-                Text("1. افتح Settings › Accessibility › Touch › Back Tap.")
-                Text("2. اختر Double Tap وحدد اختصار MixCapture: Toggle Recording لبدء التسجيل وإيقافه، أو Start Recording للبدء فقط.")
-                Text("3. قد يطلب النظام فتح التطبيق أو إلغاء قفل الجهاز قبل بدء التسجيل.")
-                Text("بديل عبر تطبيق Shortcuts: أضف إجراء Open URLs بالرابط التالي:")
+                Text("Record with a double tap on the back of your iPhone:").font(.subheadline.weight(.semibold))
+                Text("1. Open Settings › Accessibility › Touch › Back Tap.")
+                Text("2. Choose Double Tap and select a MixCapture shortcut: Toggle Recording to start and stop, or Start Recording to start only.")
+                Text("3. iOS may ask you to open the app or unlock your iPhone before recording starts.")
+                Text("Alternatively, add an Open URLs action in Shortcuts with this URL:")
                 Text("mixcapture://toggle")
                     .font(.callout.monospaced())
                     .textSelection(.enabled)
@@ -1767,7 +1766,7 @@ struct SettingsScreen: View {
             }
             .font(.footnote)
         } header: {
-            Text("اختصار التسجيل السريع")
+            Text("Recording shortcut")
         }
     }
 
@@ -1775,18 +1774,18 @@ struct SettingsScreen: View {
         Section {
             CommandExamples()
         } header: {
-            Text("أمثلة على الأوامر")
+            Text("Command examples")
         } footer: {
-            Text("اكتب أو قل الأوامر بالعربية أو الإنجليزية أو بالخليط. ما لا يمكن فهمه بثقة يذهب للمراجعة.")
+            Text("Type or speak in Arabic, English, or a mix. Unclear commands go to Review.")
         }
     }
 
     private var privacySection: some View {
         Section {
-            Label("التفريغ والتنظيم محليان ولا يُرفع الصوت. ربط التقويم اختياري، ومزامنة مواعيده تتبع حسابات iOS.", systemImage: "lock.shield")
+            Label("Transcription and organization stay on device; audio is not uploaded. Calendar connection is optional, and calendar syncing follows your iOS accounts.", systemImage: "lock.shield")
                 .font(.footnote)
         } header: {
-            Text("الخصوصية")
+            Text("Privacy")
         }
     }
 
@@ -1796,7 +1795,7 @@ struct SettingsScreen: View {
         do {
             let data = try Data(contentsOf: url)
             try items.mergeBackup(data: data)
-            importResult = ("تم دمج النسخة. العناصر الموجودة لم تتغيّر وأُضيفت الجديدة فقط.", false)
+            importResult = ("Backup merged. Existing items are unchanged; only new items were added.", false)
         } catch {
             importResult = (error.localizedDescription, true)
         }

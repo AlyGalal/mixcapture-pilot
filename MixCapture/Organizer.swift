@@ -12,11 +12,11 @@ enum OrganizerKind: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .note: return "ملاحظة"
-        case .task: return "مهمة"
-        case .shopping: return "مشتريات"
-        case .recipe: return "وصفة"
-        case .calendar: return "موعد"
+        case .note: return "Note"
+        case .task: return "Task"
+        case .shopping: return "Shopping item"
+        case .recipe: return "Recipe"
+        case .calendar: return "Event"
         }
     }
 }
@@ -69,13 +69,13 @@ enum OrganizationKind: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
     var label: String {
         switch self {
-        case .note: return "ملاحظة"
-        case .task: return "مهمة"
-        case .shopping: return "مشتريات"
-        case .recipe: return "وصفة"
-        case .calendar: return "موعد"
-        case .reminder: return "تذكير"
-        case .expense: return "مصروف"
+        case .note: return "Note"
+        case .task: return "Task"
+        case .shopping: return "Shopping item"
+        case .recipe: return "Recipe"
+        case .calendar: return "Event"
+        case .reminder: return "Reminder"
+        case .expense: return "Expense"
         }
     }
 }
@@ -143,15 +143,15 @@ enum OrganizerParser {
         let parser = PhraseParser(now: now, calendar: calendar)
         let doc = Doc(text)
         if text.utf16.count > 100_000 {
-            return [parser.review(.note, doc, text, "النص طويل جدًا للتنظيم التلقائي؛ راجعه يدويًا.")]
+            return [parser.review(.note, doc, text, "This text is too long to organize automatically. Review it manually.")]
         }
         if doc.has(#"^\s*(?:هل|لو|اذا|if|did|was|were|have|has|what|why|when|how|is|are|do|does|should)(?![\p{L}])"#) {
-            return [parser.review(.note, doc, text, "سؤال أو احتمال؛ لم يُنفَّذ كأمر.")]
+            return [parser.review(.note, doc, text, "This may be a question or possibility. It was not executed as a command.")]
         }
         if let recipe = parser.recipe(doc, text) { return [recipe] }
         if doc.has(Rx.negation) || doc.has(#"\?\s*$"#) {
             return [parser.review(parser.classify(doc)?.kind ?? .note, doc, text,
-                                  "فيها نفي أو تصحيح؛ راجع المصدر كاملًا.")]
+                                  "This contains a negation or correction. Review the full source.")]
         }
         let segments = parser.segments(doc)
         guard segments.count > 1 else { return parser.parseSegment(doc, text, previous: nil) }
@@ -470,7 +470,7 @@ private struct PhraseParser {
     func parseSegment(_ d: Doc, _ body: String, previous: OrganizationDraft?) -> [OrganizationDraft] {
         let head = classify(d)
         if d.has(Rx.negation) {
-            return [review(head?.kind ?? .note, d, body, "فيها نفي أو إلغاء؛ لم يُنفَّذ أي شيء تلقائياً.")]
+            return [review(head?.kind ?? .note, d, body, "This contains a negation or cancellation. Nothing was executed automatically.")]
         }
         guard let head else { return [fallback(d, body)] }
         switch head.kind {
@@ -491,15 +491,15 @@ private struct PhraseParser {
         let rest = d.removing([head] + when.ranges).stripped(Rx.reminderLead)
         var title = rest.text
         if Rx.pronouns.contains(rest.key) {
-            guard let previous else { return review(.reminder, d, body, "التذكير يشير لشيء غير مذكور.") }
+            guard let previous else { return review(.reminder, d, body, "This reminder refers to something that was not specified.") }
             title = previous.title
         }
-        if d.has(Rx.recurrence) { return review(.reminder, d, body, "التكرار غير مدعوم تلقائياً؛ راجع التذكير.", title: title) }
+        if d.has(Rx.recurrence) { return review(.reminder, d, body, "Recurring reminders require manual review.", title: title) }
         switch when.found {
-        case .absent: return review(.reminder, d, body, "لم يُذكر موعد واضح.", title: title)
+        case .absent: return review(.reminder, d, body, "No specific date and time were given.", title: title)
         case .unclear(let reason): return review(.reminder, d, body, reason, title: title)
         case .date(let date):
-            var out = title.isEmpty ? review(.reminder, d, body, "نص التذكير غير واضح.") : make(.reminder, title, body)
+            var out = title.isEmpty ? review(.reminder, d, body, "The reminder text is unclear.") : make(.reminder, title, body)
             out.dueDate = date
             return out
         }
@@ -518,22 +518,22 @@ private struct PhraseParser {
         var reason: String?
         switch moment(d).found {
         case .absent: break
-        default: reason = "وقت المصروف مذكور بشكل منفصل؛ راجع تاريخه ووقته."
+        default: reason = "The expense time is stated separately. Review its date and time."
         }
         if !leading.isEmpty && !["انا", "please"].contains(leading) {
-            reason = "المصروف مذكور ضمن كلام آخر؛ أكد أنه مصروفك قبل الحفظ."
+            reason = "This expense is part of another statement. Confirm that it is your expense before saving."
         } else if d.has(Rx.pastDay) || d.has(Rx.weekday) || d.has(Rx.slashDate) || d.has(Rx.day) ||
             d.has(Rx.unsupportedDate) || d.has(Rx.word(#"last\s+(?:month|week|year)|الشهر\s+(?:اللي\s+فات|الماضي)|الاسبوع\s+(?:اللي\s+فات|الماضي)|يوم\s+\d+"#)) {
-            reason = "تاريخ المصروف ليس وقت التسجيل؛ راجع التاريخ."
+            reason = "The expense date differs from the recording date. Review the date."
         } else if d.has(Rx.word(#"minus|negative|سالب|ناقص|ولا|او|or|either|بدل|instead|actually|اقصد|قصدي|plus|زائد|ضرب|خصم|discount|refund|cashback|استرداد"#)) ||
                     d.has(#"\d\s*[+*/×=]\s*\d"#) {
-            reason = "المبلغ فيه نفي أو بدائل أو تصحيح؛ راجعه يدويًا."
+            reason = "The amount contains negation, alternatives or a correction. Review it manually."
         } else if found.isEmpty {
-            reason = d.has(Rx.currencyWord) ? "المبلغ غير واضح." : "العملة غير مذكورة؛ لن نفترضها."
+            reason = d.has(Rx.currencyWord) ? "The amount is unclear." : "No currency was given. Choose one explicitly."
         } else if found.count > 1 {
-            reason = "أكثر من مبلغ في نفس الجملة."
+            reason = "Multiple amounts appear in the same sentence."
         } else if found[0].text == nil {
-            reason = "المبلغ غير صالح (صفر أو سالب أو كبير جداً أو بصيغة غير مدعومة)."
+            reason = "Invalid amount: zero, negative, too large or an unsupported format."
         }
         if let reason {
             out.requiresReview = true
@@ -554,19 +554,19 @@ private struct PhraseParser {
             r.dueDate = start
             return r
         }
-        if d.has(Rx.recurrence) { return unclear("التكرار غير مدعوم تلقائياً.") }
+        if d.has(Rx.recurrence) { return unclear("Recurrence requires manual review.") }
         let start: Date
         switch when.found {
-        case .absent: return unclear("لم يُذكر يوم ووقت البداية.")
+        case .absent: return unclear("No start date and time were given.")
         case .unclear(let reason): return unclear(reason)
         case .date(let date): start = date
         }
         guard durations.count == 1, let minutes = spanMinutes(d, durations[0]) else {
-            return unclear(durations.isEmpty ? "المدة غير مذكورة؛ لن نخترع مدة." : "المدة غير واضحة.", start)
+            return unclear(durations.isEmpty ? "No duration was given. Choose one explicitly." : "The duration is unclear.", start)
         }
-        if hasDurationContinuation(d, durations[0]) { return unclear("المدة غير مكتملة أو مركبة؛ راجعها.", start) }
+        if hasDurationContinuation(d, durations[0]) { return unclear("The duration is incomplete or has multiple parts. Review it.", start) }
         guard !title.isEmpty, let end = calendar.date(byAdding: .minute, value: minutes, to: start) else {
-            return unclear("عنوان الموعد غير واضح.", start)
+            return unclear("The event title is unclear.", start)
         }
         var out = make(.calendar, title, body)
         out.dueDate = start
@@ -589,11 +589,11 @@ private struct PhraseParser {
         if let verb = d.first(Rx.buyVerb) { cut.append(verb.range) }
         if let verb = d.first(Rx.addVerbStart) { cut.append(verb.range) }
         if case .absent = moment(d).found {} else {
-            return [review(kind, d, body, "فيها موعد؛ راجع إن كان المقصود تذكيراً.")]
+            return [review(kind, d, body, "This includes a date or time. Review whether you intended a reminder.")]
         }
-        if d.has(Rx.currencyWord) { return [review(kind, d, body, "فيها مبلغ؛ راجع إن كان المقصود مصروفاً.")] }
+        if d.has(Rx.currencyWord) { return [review(kind, d, body, "This includes an amount. Review whether you intended an expense.")] }
         let items = split(d.removing(cut).stripped(Rx.itemLead), Rx.itemSeparator)
-        guard !items.isEmpty else { return [review(kind, d, body, "لم أتعرف على العناصر.")] }
+        guard !items.isEmpty else { return [review(kind, d, body, "Could not identify the items.")] }
         return items.map { item in
             var out = make(kind, item, body)
             out.collection = collection
@@ -610,7 +610,7 @@ private struct PhraseParser {
         else if let verb = base.first(Rx.addVerbStart) { start = NSMaxRange(verb.range) }
         let end = project?.range.location ?? base.length
         let title = base.sub(from: start, to: max(start, end)).stripped(Rx.itemLead).text
-        var out = title.isEmpty ? review(.task, d, body, "عنوان المهمة غير واضح.") : make(.task, title, body)
+        var out = title.isEmpty ? review(.task, d, body, "The task title is unclear.") : make(.task, title, body)
         if let project, let r = base.group(project, 1) { out.collection = Doc(base.o(r)).text }
         switch when.found {
         case .absent: break
@@ -632,10 +632,10 @@ private struct PhraseParser {
             content = d.sub(from: NSMaxRange(colon.range), to: d.length)
         } else {
             content = d.sub(from: after, to: d.length)
-            if content.has(Rx.project) { return review(.note, d, body, "اسم المشروع غير محدد؛ ضع «:» بعد اسمه.") }
+            if content.has(Rx.project) { return review(.note, d, body, "The project name is unclear. Add a colon after its name.") }
         }
         let title = shortTitle(content.stripped(Rx.noteLead).text)
-        guard !title.isEmpty else { return review(.note, d, body, "الملاحظة فارغة.") }
+        guard !title.isEmpty else { return review(.note, d, body, "The note is empty.") }
         var out = make(.note, title, body)
         out.collection = collection
         return out
@@ -667,18 +667,18 @@ private struct PhraseParser {
         if title.isEmpty {
             out.title = shortTitle(d.text)
             out.requiresReview = true
-            out.reason = "اسم الوصفة غير واضح."
+            out.reason = "The recipe name is unclear."
         }
         return out
     }
 
     func fallback(_ d: Doc, _ body: String) -> OrganizationDraft {
-        if d.has(Rx.imperativeStart) { return review(.note, d, body, "أمر غير مفهوم بشكل آمن؛ لم يُنفَّذ.") }
+        if d.has(Rx.imperativeStart) { return review(.note, d, body, "This command could not be understood safely. It was not executed.") }
         guard case .absent = moment(d).found, !d.has(Rx.currencyWord) else {
-            return review(.note, d, body, "فيه موعد أو مبلغ بدون أمر واضح؛ راجع النوع.")
+            return review(.note, d, body, "This includes a date or amount without a clear command. Review its type.")
         }
         let title = shortTitle(d.text)
-        return title.isEmpty ? review(.note, d, body, "النص فارغ.") : make(.note, title, body)
+        return title.isEmpty ? review(.note, d, body, "The text is empty.") : make(.note, title, body)
     }
 
     // MARK: Dates and times
@@ -708,39 +708,39 @@ private struct PhraseParser {
         let times = d.all(Rx.time).filter { d.group($0, 1) != nil || d.group($0, 3) != nil || d.group($0, 5) != nil }
         let ranges = (relative + days + weekdays + noons + times).map { $0.range }
         func unclear(_ reason: String) -> Moment { Moment(found: .unclear(reason), ranges: ranges) }
-        if d.has(Rx.unsupportedDate) { return unclear("صيغة التاريخ غير مدعومة تلقائياً؛ راجع الموعد.") }
-        if d.has(Rx.pastDay) { return unclear("الموعد في الماضي.") }
+        if d.has(Rx.unsupportedDate) { return unclear("This date format requires manual review.") }
+        if d.has(Rx.pastDay) { return unclear("This date is in the past.") }
         if !relative.isEmpty {
             guard relative.count == 1, days.isEmpty, weekdays.isEmpty, noons.isEmpty, times.isEmpty else {
-                return unclear("أكثر من موعد في نفس الجملة.")
+                return unclear("Multiple dates or times appear in the same sentence.")
             }
-            guard let minutes = spanMinutes(d, relative[0]) else { return unclear("المدة بالأيام أو الأسابيع تحتاج وقتاً محدداً.") }
-            if hasDurationContinuation(d, relative[0]) { return unclear("المدة غير مكتملة أو مركبة؛ راجعها.") }
-            guard let date = calendar.date(byAdding: .minute, value: minutes, to: now) else { return unclear("تعذّر حساب الموعد.") }
+            guard let minutes = spanMinutes(d, relative[0]) else { return unclear("A duration in days or weeks needs a specific time.") }
+            if hasDurationContinuation(d, relative[0]) { return unclear("The duration is incomplete or has multiple parts. Review it.") }
+            guard let date = calendar.date(byAdding: .minute, value: minutes, to: now) else { return unclear("Could not calculate the date and time.") }
             return Moment(found: .date(date), ranges: ranges)
         }
         let dayCount = days.count + weekdays.count, timeCount = noons.count + times.count
         if dayCount == 0 && timeCount == 0 { return Moment(found: .absent, ranges: []) }
-        if dayCount > 1 { return unclear("أكثر من يوم في نفس الجملة.") }
-        if timeCount > 1 { return unclear("أكثر من وقت في نفس الجملة.") }
-        if dayCount == 0 { return unclear("لم يُذكر اليوم؛ لن نفترضه.") }
-        if timeCount == 0 { return unclear("تاريخ بدون وقت محدد.") }
+        if dayCount > 1 { return unclear("Multiple days appear in the same sentence.") }
+        if timeCount > 1 { return unclear("Multiple times appear in the same sentence.") }
+        if dayCount == 0 { return unclear("No day was given. Choose one explicitly.") }
+        if timeCount == 0 { return unclear("A date was given without a specific time.") }
 
         var offset = 0
         if let m = days.first, let w = d.gn(m, 1) {
             if w.hasPrefix("بعد") || w.contains("after") { offset = 2 }
             else if w.hasPrefix("بكر") || w == "tomorrow" { offset = 1 }
         } else if let m = weekdays.first {
-            if d.gn(m, 1) == "next" { return unclear("«next» قد تعني هذا الأسبوع أو الذي يليه.") }
-            guard let name = d.gn(m, 2), let target = Rx.weekdayNames[name] else { return unclear("اليوم غير واضح.") }
+            if d.gn(m, 1) == "next" { return unclear("'Next' could mean this week or the following week.") }
+            guard let name = d.gn(m, 2), let target = Rx.weekdayNames[name] else { return unclear("The day is unclear.") }
             offset = (target - calendar.component(.weekday, from: now) + 7) % 7
-            if offset == 0 { return unclear("اليوم المذكور هو اليوم الحالي؛ هل تقصد اليوم أم الأسبوع القادم؟") }
+            if offset == 0 { return unclear("This weekday is today. Choose today or next week explicitly.") }
         }
 
         var hour = 12, minute = 0
         if let m = noons.first {
             let w = d.gn(m, 1) ?? ""
-            guard w == "noon" || w == "midday" else { return unclear("منتصف الليل غامض؛ حدّد اليوم والوقت.") }
+            guard w == "noon" || w == "midday" else { return unclear("Midnight is ambiguous. Specify the date and time.") }
         } else {
             switch clock(d, times[0]) {
             case .unclear(let reason): return unclear(reason)
@@ -750,7 +750,7 @@ private struct PhraseParser {
             }
         }
         guard let dayStart = calendar.date(byAdding: .day, value: offset, to: calendar.startOfDay(for: now)) else {
-            return unclear("تعذّر حساب الموعد.")
+            return unclear("Could not calculate the date and time.")
         }
         var parts = calendar.dateComponents([.year, .month, .day], from: dayStart)
         parts.hour = hour
@@ -760,9 +760,9 @@ private struct PhraseParser {
               calendar.component(.hour, from: date) == hour,
               calendar.component(.minute, from: date) == minute,
               calendar.isDate(date, inSameDayAs: dayStart) else {
-            return unclear("هذا الوقت غير موجود في ذلك اليوم بسبب تغيير التوقيت.")
+            return unclear("This time does not exist on that date because the clocks change.")
         }
-        guard date > now else { return unclear("الموعد مرّ.") }
+        guard date > now else { return unclear("The scheduled time has passed.") }
         return Moment(found: .date(date), ranges: ranges)
     }
 
@@ -773,27 +773,27 @@ private struct PhraseParser {
 
     /// Time match groups: 1 prefix, 2 hour, 3 minutes, 4 fraction, 5 meridiem. Never guesses AM/PM.
     func clock(_ d: Doc, _ m: NSTextCheckingResult) -> Clock {
-        let ambiguous = Clock.unclear("لم يُحدَّد صباحاً أو مساءً؛ لن نفترضه.")
-        guard let hourText = d.gn(m, 2), let h = number(hourText) else { return .unclear("الساعة غير واضحة.") }
+        let ambiguous = Clock.unclear("AM or PM was not specified. Choose it explicitly.")
+        guard let hourText = d.gn(m, 2), let h = number(hourText) else { return .unclear("The hour is unclear.") }
         var minute = 0, minus = 0
         if let mmText = d.gn(m, 3) {
-            guard let mm = Int(mmText), mm < 60 else { return .unclear("الدقائق غير صالحة.") }
+            guard let mm = Int(mmText), mm < 60 else { return .unclear("The minutes are invalid.") }
             minute = mm
         }
         if let fraction = d.gn(m, 4) {
-            if d.group(m, 3) != nil { return .unclear("الوقت متعارض.") }
+            if d.group(m, 3) != nil { return .unclear("The time is contradictory.") }
             switch collapse(fraction) {
             case "ونص", "و نص", "and a half": minute = 30
             case "وربع", "و ربع": minute = 15
             case "وتلت", "و تلت": minute = 20
             case "الا ربع": minus = 15
             case "الا تلت": minus = 20
-            default: return .unclear("الوقت غير واضح.")
+            default: return .unclear("The time is unclear.")
             }
         }
         let hour24: Int
         if let mer = d.gn(m, 5) {
-            guard (1...12).contains(h) else { return .unclear("الساعة والفترة متعارضتان.") }
+            guard (1...12).contains(h) else { return .unclear("The hour conflicts with AM or PM.") }
             switch collapse(mer) {
             case "am", "a.m", "a.m.": hour24 = h == 12 ? 0 : h
             case "pm", "p.m", "p.m.": hour24 = h == 12 ? 12 : h + 12
@@ -824,7 +824,7 @@ private struct PhraseParser {
             return ambiguous
         }
         let total = hour24 * 60 + minute - minus
-        guard total >= 0, total < 24 * 60 else { return .unclear("الوقت خارج اليوم.") }
+        guard total >= 0, total < 24 * 60 else { return .unclear("The time is outside this day.") }
         return .ok(hour: total / 60, minute: total % 60)
     }
 
@@ -968,7 +968,7 @@ extension LocalItemsSnapshot {
             + expenses.filter { $0.sourceCaptureID == sourceID }.count
             + reminders.filter { $0.sourceCaptureID == sourceID }.count
         let pending = (reviewQueue ?? []).filter { $0.sourceCaptureID == sourceID }.count
-        return ("تم الحفظ: \(saved) · للمراجعة: \(pending)", pending > 0 ? .review : .applied)
+        return ("Saved: \(saved) · For review: \(pending)", pending > 0 ? .review : .applied)
     }
 
     /// One candidate with every saved item, review draft and the receipt. `nil` when the source
@@ -982,7 +982,7 @@ extension LocalItemsSnapshot {
             (reviewQueue ?? []).contains { $0.sourceCaptureID == sourceID }
         if existingSource {
             let receipt = OrganizationReceipt(id: sourceID, createdAt: now,
-                summary: "هذا المصدر له عناصر محفوظة بالفعل؛ لم نضف نسخًا مكررة.", status: receiptLine(for: sourceID).status,
+                summary: "This source already has saved items. No duplicates were added.", status: receiptLine(for: sourceID).status,
                 originalText: drafts.first?.body)
             next.organizationReceipts = (next.organizationReceipts ?? []) + [receipt]
             return (next, receipt, [])
@@ -1060,7 +1060,7 @@ extension LocalItemsSnapshot {
         next.library = library?.filter { $0.sourceCaptureID != sourceID }
         next.reviewQueue = reviewQueue?.filter { $0.sourceCaptureID != sourceID }
         receipts[index].status = .undone
-        receipts[index].summary = "تم التراجع؛ لن يُعاد التنظيم تلقائياً."
+        receipts[index].summary = "Undone. This source will not be organized again automatically."
         next.organizationReceipts = receipts
         return (next, removed)
     }
@@ -1079,25 +1079,25 @@ extension LocalItemsSnapshot {
         }
         guard unique(incoming.expenses), unique(incoming.reminders), unique(incoming.library ?? []),
               unique(incoming.reviewQueue ?? []), unique(incoming.organizationReceipts ?? []) else {
-            throw LocalItemsError.invalidBackup("معرّفات مكررة")
+            throw LocalItemsError.invalidBackup("Duplicate identifiers")
         }
         let incomingIDs = incoming.expenses.map(\.id) + incoming.reminders.map(\.id) +
             (incoming.library ?? []).map(\.id) + (incoming.reviewQueue ?? []).map(\.id)
         guard Set(incomingIDs).count == incomingIDs.count else {
-            throw LocalItemsError.invalidBackup("معرّف مستخدم لأكثر من عنصر")
+            throw LocalItemsError.invalidBackup("An identifier is shared by multiple items")
         }
         for item in incoming.expenses where item.amountMinorUnits <= 0 || isBlank(item.title) {
-            throw LocalItemsError.invalidBackup("مصروف \(item.id.uuidString)")
+            throw LocalItemsError.invalidBackup("Expense \(item.id.uuidString)")
         }
         for item in incoming.reminders where isBlank(item.title) {
-            throw LocalItemsError.invalidBackup("تذكير \(item.id.uuidString)")
+            throw LocalItemsError.invalidBackup("Reminder \(item.id.uuidString)")
         }
         guard incoming.expenses.allSatisfy({ $0.date.timeIntervalSince1970.isFinite }),
               incoming.reminders.allSatisfy({ $0.scheduledDate.timeIntervalSince1970.isFinite }),
               (incoming.reviewQueue ?? []).allSatisfy({ $0.createdAt.timeIntervalSince1970.isFinite &&
                   $0.dueDate?.timeIntervalSince1970.isFinite != false && $0.endDate?.timeIntervalSince1970.isFinite != false }),
               (incoming.organizationReceipts ?? []).allSatisfy({ $0.createdAt.timeIntervalSince1970.isFinite }) else {
-            throw LocalItemsError.invalidBackup("تاريخ غير صالح")
+            throw LocalItemsError.invalidBackup("Invalid date")
         }
         for item in incoming.library ?? [] {
             do { _ = try validatedLibraryItem(item) } catch {
@@ -1105,7 +1105,7 @@ extension LocalItemsSnapshot {
             }
         }
         for draft in incoming.reviewQueue ?? [] where isBlank(draft.title) {
-            throw LocalItemsError.invalidBackup("مراجعة \(draft.id.uuidString)")
+            throw LocalItemsError.invalidBackup("Review item \(draft.id.uuidString)")
         }
         var next = self
         next.expenses = appendingNew(expenses, incoming.expenses.filter { !occupied.contains($0.id) && allowed($0.sourceCaptureID) })
@@ -1114,7 +1114,7 @@ extension LocalItemsSnapshot {
             copy.automaticSchedulingEligible = false
             if copy.status != .completed {
                 copy.status = .pending
-                copy.scheduleError = "مستورد من نسخة احتياطية؛ لم يُجدول على هذا الجهاز بعد."
+                copy.scheduleError = "Imported from a backup. Not scheduled on this device."
             }
             return copy
         })

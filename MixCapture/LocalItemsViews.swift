@@ -6,26 +6,26 @@ import UIKit
 extension ExpenseCategory {
     var label: String {
         switch self {
-        case .food: return "طعام"
-        case .groceries: return "بقالة"
-        case .transport: return "مواصلات"
-        case .bills: return "فواتير"
-        case .shopping: return "تسوق"
-        case .health: return "صحة"
-        case .other: return "أخرى"
+        case .food: return "Food"
+        case .groceries: return "Groceries"
+        case .transport: return "Transport"
+        case .bills: return "Bills"
+        case .shopping: return "Shopping"
+        case .health: return "Health"
+        case .other: return "Other"
         }
     }
 }
 
 func reminderStatusText(_ r: ReminderItem, now: Date = Date()) -> String {
-    if r.status == .completed { return "مكتمل" }
-    if r.scheduledDate <= now { return "الموعد مرّ" }
+    if r.status == .completed { return "Completed" }
+    if r.scheduledDate <= now { return "Time has passed" }
     switch r.status {
-    case .scheduled: return "مجدول على الجهاز (التنبيه الفعلي يعتمد على إعدادات الجهاز)"
-    case .pending: return "محفوظ — لم يُجدول بعد"
-    case .needsPermission: return "محفوظ — غير مجدول: الإشعارات غير مسموحة"
-    case .failed: return "محفوظ — غير مجدول: فشلت الجدولة"
-    case .completed: return "مكتمل"
+    case .scheduled: return "Scheduled on this device; alerts depend on device settings"
+    case .pending: return "Saved, not scheduled yet"
+    case .needsPermission: return "Saved, not scheduled: notifications are not allowed"
+    case .failed: return "Saved, not scheduled: scheduling failed"
+    case .completed: return "Completed"
     }
 }
 
@@ -65,32 +65,32 @@ struct ExpensesScreen: View {
                 Section {
                     ViewThatFits {
                         HStack {
-                            Button("الشهر السابق", systemImage: "chevron.right") { shiftMonth(-1) }
+                            Button("Previous month", systemImage: "chevron.left") { shiftMonth(-1) }
                                 .labelStyle(.iconOnly)
                             Spacer()
-                            Text(month.formatted(.dateTime.month(.wide).year())).font(.headline)
+                            Text(month.formatted(.dateTime.month(.wide).year().locale(Locale(identifier: "en_US")))).font(.headline)
                             Spacer()
-                            Button("الشهر التالي", systemImage: "chevron.left") { shiftMonth(1) }
+                            Button("Next month", systemImage: "chevron.right") { shiftMonth(1) }
                                 .labelStyle(.iconOnly)
                         }
                         VStack {
-                            Text(month.formatted(.dateTime.month(.wide).year())).font(.headline)
+                            Text(month.formatted(.dateTime.month(.wide).year().locale(Locale(identifier: "en_US")))).font(.headline)
                             HStack {
-                                Button("الشهر السابق") { shiftMonth(-1) }
-                                Button("الشهر التالي") { shiftMonth(1) }
+                                Button("Previous month") { shiftMonth(-1) }
+                                Button("Next month") { shiftMonth(1) }
                             }
                         }
                     }
                     .buttonStyle(.borderless)
                 }
-                Section("ملخص الشهر (لكل عملة على حدة)") {
+                Section("Monthly summary by currency") {
                     let totals = monthlySummary(model.snapshot.expenses, month: month)
                     if totals.isEmpty {
-                        Text("لا توجد مصروفات في هذا الشهر").foregroundStyle(.secondary)
+                        Text("No expenses this month").foregroundStyle(.secondary)
                     }
                     ForEach(totals, id: \.currency) { t in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("الإجمالي: \(formatAmount(t.totalMinorUnits, t.currency))")
+                            Text("Total: \(formatAmount(t.totalMinorUnits, t.currency))")
                                 .font(.headline)
                                 .foregroundStyle(Theme.teal)
                             ForEach(ExpenseCategory.allCases.filter { t.byCategory[$0] != nil }) { c in
@@ -112,52 +112,52 @@ struct ExpensesScreen: View {
                         .accessibilityElement(children: .combine)
                     }
                 }
-                Section("المصروفات") {
+                Section("Expenses") {
                     ForEach(monthExpenses) { e in
                         Button { editing = e } label: {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(e.title).lineLimit(2).foregroundStyle(Theme.ink)
-                                Text("\(e.date.formatted(date: .abbreviated, time: .omitted)) · \(e.category.label) · \(formatAmount(e.amountMinorUnits, e.currency))")
+                                Text("\(e.date.formatted(.dateTime.month(.abbreviated).day().year().locale(Locale(identifier: "en_US")))) · \(e.category.label) · \(formatAmount(e.amountMinorUnits, e.currency))")
                                     .font(.subheadline).foregroundStyle(.secondary)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .buttonStyle(.plain)
                         .accessibilityElement(children: .combine)
-                        .accessibilityHint("اضغط للتعديل")
+                        .accessibilityHint("Tap to edit")
                         .swipeActions {
-                            Button("حذف", role: .destructive) { pendingDelete = e }
+                            Button("Delete", role: .destructive) { pendingDelete = e }
                         }
                         .contextMenu {
-                            Button("تعديل", systemImage: "pencil") { editing = e }
-                            Button("حذف", systemImage: "trash", role: .destructive) { pendingDelete = e }
+                            Button("Edit", systemImage: "pencil") { editing = e }
+                            Button("Delete", systemImage: "trash", role: .destructive) { pendingDelete = e }
                         }
                     }
                     if monthExpenses.isEmpty {
-                        Text("أضف مصروفاً بزر + أو سجّله بصوتك.").font(.subheadline).foregroundStyle(.secondary)
+                        Text("Tap + to add an expense or record it with your voice.").font(.subheadline).foregroundStyle(.secondary)
                     }
                 }
             }
             .scrollContentBackground(.hidden)
             .background(Theme.surface)
-            .navigationTitle("المصاريف")
+            .navigationTitle("Expenses")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("إضافة مصروف", systemImage: "plus") { showingEditor = true }
+                    Button("Add expense", systemImage: "plus") { showingEditor = true }
                         .disabled(model.storageError != nil)
                         .accessibilityIdentifier("expenses.add")
                 }
             }
             .sheet(isPresented: $showingEditor) { ExpenseEditor() }
             .sheet(item: $editing) { ExpenseEditor(existing: $0) }
-            .confirmationDialog("حذف المصروف؟", isPresented: Binding(get: { pendingDelete != nil },
+            .confirmationDialog("Delete expense?", isPresented: Binding(get: { pendingDelete != nil },
                                                                      set: { if !$0 { pendingDelete = nil } }),
                                 titleVisibility: .visible, presenting: pendingDelete) { e in
-                Button("حذف", role: .destructive) {
+                Button("Delete", role: .destructive) {
                     do { try model.deleteExpense(id: e.id); error = nil } catch { self.error = error.localizedDescription }
                 }
-                Button("إلغاء", role: .cancel) {}
+                Button("Cancel", role: .cancel) {}
             }
         }
     }
@@ -193,25 +193,25 @@ struct ExpenseEditor: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("العنوان", text: $title, axis: .vertical)
-                    TextField("المبلغ (مثال: 120.50)", text: $amount)
+                    TextField("Title", text: $title, axis: .vertical)
+                    TextField("Amount (e.g. 120.50)", text: $amount)
                         .keyboardType(.decimalPad)
                         .environment(\.layoutDirection, .leftToRight)
                         .accessibilityIdentifier("expense.amount")
-                    Picker("العملة", selection: $currency) {
+                    Picker("Currency", selection: $currency) {
                         ForEach(Currency.allCases) { Text($0.rawValue).tag($0) }
                     }
                     .pickerStyle(.segmented)
-                    Picker("الفئة", selection: $category) {
-                        Text("اختر الفئة").tag(ExpenseCategory?.none)
+                    Picker("Category", selection: $category) {
+                        Text("Choose a category").tag(ExpenseCategory?.none)
                         ForEach(ExpenseCategory.allCases) { Text($0.label).tag(Optional($0)) }
                     }
-                    DatePicker("التاريخ", selection: $date, displayedComponents: .date)
+                    DatePicker("Date", selection: $date, displayedComponents: .date)
                 } footer: {
-                    Text("إدخال يدوي: راجع المبلغ والفئة بنفسك قبل الحفظ.")
+                    Text("Manual entry: review the amount and category before saving.")
                 }
                 if let sourceTranscript, !sourceTranscript.isEmpty {
-                    Section("النص الأصلي") {
+                    Section("Original text") {
                         Text(sourceTranscript).textSelection(.enabled)
                     }
                 }
@@ -219,12 +219,12 @@ struct ExpenseEditor: View {
                     Section { Text(error).foregroundStyle(.red) }
                 }
             }
-            .navigationTitle(existing == nil ? "مصروف جديد" : "تعديل مصروف")
+            .navigationTitle(existing == nil ? "New expense" : "Edit expense")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("إلغاء") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("حفظ", action: save).disabled(saving || category == nil || model.storageError != nil)
+                    Button("Save", action: save).disabled(saving || category == nil || model.storageError != nil)
                         .accessibilityIdentifier("expense.save")
                 }
             }
@@ -295,24 +295,24 @@ private struct RemindersList: View {
             Section {
                 ForEach(active) { reminderRow($0) }
                 if active.isEmpty {
-                    Text("لا توجد تذكيرات نشطة").foregroundStyle(.secondary)
+                    Text("No active reminders").foregroundStyle(.secondary)
                 }
             } footer: {
-                Text("هذه تنبيهات محلية على الجهاز وليست مزامنة مع تطبيق التذكيرات من Apple.")
+                Text("These are local notifications on this device, not a sync with Apple Reminders.")
             }
             if !completed.isEmpty {
-                Section("المكتملة") {
+                Section("Completed") {
                     ForEach(completed) { reminderRow($0) }
                 }
             }
         }
         .scrollContentBackground(.hidden)
         .background(Theme.surface)
-        .navigationTitle("التذكيرات")
+        .navigationTitle("Reminders")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("إضافة تذكير", systemImage: "plus") { showingEditor = true }
+                Button("Add reminder", systemImage: "plus") { showingEditor = true }
                     .disabled(model.storageError != nil)
                     .accessibilityIdentifier("reminders.add")
             }
@@ -324,7 +324,7 @@ private struct RemindersList: View {
     private func reminderRow(_ r: ReminderItem) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(r.title).lineLimit(3).strikethrough(r.status == .completed)
-            Text(r.scheduledDate.formatted(date: .abbreviated, time: .shortened))
+            Text(r.scheduledDate.formatted(.dateTime.month(.abbreviated).day().year().hour().minute().locale(Locale(identifier: "en_US"))))
                 .font(.subheadline).foregroundStyle(.secondary)
             Text(reminderStatusText(r))
                 .font(.subheadline)
@@ -335,12 +335,12 @@ private struct RemindersList: View {
             if r.status != .completed {
                 VStack(alignment: .leading) {
                     if r.status != .scheduled && r.scheduledDate > Date() {
-                        Button("إعادة المحاولة") { run { _ = try await model.schedule(id: r.id) } }
+                        Button("Retry") { run { _ = try await model.schedule(id: r.id) } }
                     }
                     if r.status == .needsPermission {
-                        Button("فتح الإعدادات") { openAppSettings(openURL) }
+                        Button("Open Settings") { openAppSettings(openURL) }
                     }
-                    Button("تم / إلغاء التذكير") { run { try await model.complete(id: r.id) } }
+                    Button("Complete or cancel reminder") { run { try await model.complete(id: r.id) } }
                 }
                 .buttonStyle(.borderless)
             }
@@ -378,38 +378,38 @@ struct ReminderEditor: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("العنوان", text: $title, axis: .vertical)
-                    DatePicker("الموعد", selection: $date, in: Date()..., displayedComponents: [.date, .hourAndMinute])
+                    TextField("Title", text: $title, axis: .vertical)
+                    DatePicker("Date and time", selection: $date, in: Date()..., displayedComponents: [.date, .hourAndMinute])
                 } footer: {
-                    Text("إدخال يدوي: الموعد المقترح مجرد قيمة افتراضية؛ راجعه وعدّله بنفسك. التذكير إشعار محلي على الجهاز.")
+                    Text("Manual entry: the suggested time is a default. Review and change it before saving. This reminder uses a local notification.")
                 }
                 .disabled(busy || saved != nil)
                 if let error {
                     Section { Text(error).foregroundStyle(.red) }
                 }
                 if let saved {
-                    Section("الحالة") {
+                    Section("Status") {
                         Text(reminderStatusText(saved))
                         if let e = saved.scheduleError { Text(e).foregroundStyle(.red) }
                         VStack(alignment: .leading) {
                             if saved.status == .needsPermission {
-                                Button("فتح الإعدادات") { openAppSettings(openURL) }
+                                Button("Open Settings") { openAppSettings(openURL) }
                             }
                             if saved.scheduledDate > Date() {
-                                Button("إعادة المحاولة") { retry(saved.id) }.disabled(busy)
+                                Button("Retry") { retry(saved.id) }.disabled(busy)
                             }
-                            Button("إغلاق") { dismiss() }
+                            Button("Close") { dismiss() }
                         }
                         .buttonStyle(.borderless)
                     }
                 }
             }
-            .navigationTitle("تذكير جديد")
+            .navigationTitle("New reminder")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("إلغاء") { dismiss() }.disabled(busy) }
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(busy) }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("حفظ وجدولة", action: save).disabled(busy || saved != nil)
+                    Button("Save and schedule", action: save).disabled(busy || saved != nil)
                 }
             }
         }

@@ -36,39 +36,39 @@ enum SimulatorFixtures {
         }
 
         do {
-            try model.upsertLibrary(OrganizerItem(kind: .note, title: "أفكار تطبيق الملاحظات",
-                                                  body: "ملاحظة تجريبية: نجرّب التنظيم المحلي للأوامر الصوتية بالعربي والإنجليزي."))
-            try model.upsertLibrary(OrganizerItem(kind: .note, title: "اجتماع الأسبوع القادم",
-                                                  body: "نراجع الخطة مع الفريق ونحدد الأولويات."))
-            try model.upsertLibrary(OrganizerItem(kind: .task, title: "مراجعة ميزانية مشروع Home",
-                                                  body: "راجع budget المشروع قبل نهاية الأسبوع.",
+            try model.upsertLibrary(OrganizerItem(kind: .note, title: "App ideas",
+                                                  body: "Try organizing local voice notes in Arabic and English."))
+            try model.upsertLibrary(OrganizerItem(kind: .note, title: "Next week’s planning",
+                                                  body: "Review the plan with the team and agree on priorities."))
+            try model.upsertLibrary(OrganizerItem(kind: .task, title: "Review Home budget",
+                                                  body: "راجع project budget قبل نهاية الأسبوع.",
                                                   collection: "Home", dueDate: future(days: 2, hour: 10)))
-            try model.upsertLibrary(OrganizerItem(kind: .task, title: "تجهيز تقرير Home",
-                                                  body: "جهّز التقرير الشهري للمشروع.",
+            try model.upsertLibrary(OrganizerItem(kind: .task, title: "Prepare Home report",
+                                                  body: "Prepare the monthly project report.",
                                                   collection: "Home", dueDate: future(days: 4, hour: 12)))
-            try model.upsertLibrary(OrganizerItem(kind: .shopping, title: "لبن زبادي",
-                                                  body: "علبتين",
+            try model.upsertLibrary(OrganizerItem(kind: .shopping, title: "Yogurt",
+                                                  body: "علبتين yogurt",
                                                   collection: "Groceries"))
-            try model.upsertLibrary(OrganizerItem(kind: .shopping, title: "خبز",
-                                                  body: "٣ أرغفة",
+            try model.upsertLibrary(OrganizerItem(kind: .shopping, title: "Bread",
+                                                  body: "3 loaves",
                                                   collection: "Groceries"))
-            try model.upsertLibrary(OrganizerItem(kind: .recipe, title: "مكرونة بالطماطم",
-                                                  body: "وصفة سريعة للعشاء.",
-                                                  ingredients: ["٢٠٠ جرام مكرونة", "٣ حبات طماطم", "فص ثوم", "ملح وفلفل"],
-                                                  steps: ["اسلق المكرونة في ماء مملح.",
-                                                          "قلّب الثوم والطماطم في مقلاة حتى تنضج الصلصة.",
-                                                          "اخلط المكرونة مع الصلصة وقدّمها ساخنة."]))
-            try model.upsertLibrary(OrganizerItem(kind: .calendar, title: "اجتماع تصميم",
-                                                  body: "مراجعة التصميم مع الفريق.",
+            try model.upsertLibrary(OrganizerItem(kind: .recipe, title: "Tomato pasta",
+                                                  body: "A quick recipe for dinner.",
+                                                  ingredients: ["200 g pasta", "3 tomatoes", "1 garlic clove", "Salt and pepper"],
+                                                  steps: ["Boil the pasta in salted water.",
+                                                          "Cook the garlic and tomatoes until the sauce is ready.",
+                                                          "Mix the pasta with the sauce and serve hot."]))
+            try model.upsertLibrary(OrganizerItem(kind: .calendar, title: "Design meeting",
+                                                  body: "Review the design with the team.",
                                                   dueDate: future(days: 3, hour: 15),
                                                   endDate: future(days: 3, hour: 16)))
 
-            try model.addExpense(date: now, title: "بقالة", amountText: "350.50", currency: .EGP,
+            try model.addExpense(date: now, title: "Groceries", amountText: "350.50", currency: .EGP,
                                  category: .groceries, sourceCaptureID: nil, sourceTranscript: nil)
-            try model.addExpense(date: now, title: "اشتراك برنامج", amountText: "12.99", currency: .USD,
+            try model.addExpense(date: now, title: "Software subscription", amountText: "12.99", currency: .USD,
                                  category: .bills, sourceCaptureID: nil, sourceTranscript: nil)
             // Saved as pending only; no notification is scheduled (no permission prompt).
-            _ = try model.createReminder(title: "مكالمة المهندس", date: future(days: 1, hour: 18),
+            _ = try model.createReminder(title: "Call the engineer", date: future(days: 1, hour: 18),
                                          sourceCaptureID: nil, sourceTranscript: nil)
 
             // An ambiguous reminder command (no AM/PM) lands in the review queue.

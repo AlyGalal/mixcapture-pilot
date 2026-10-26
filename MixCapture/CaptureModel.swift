@@ -79,13 +79,13 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
             }
             records = recovered
             if let error = loaded.errorMessage {
-                storageWarning = "تعذرت قراءة مجلد التسجيلات؛ لم نحذف أي ملف: \(error)"
+                storageWarning = "Could not read the recordings folder. No files were deleted: \(error)"
             }
             if !loaded.unreadableFiles.isEmpty {
-                storageWarning = "تعذرت قراءة \(loaded.unreadableFiles.count) ملف JSON (لم يُحذف أي شيء): \(loaded.unreadableFiles.joined(separator: ", "))"
+                storageWarning = "Could not read \(loaded.unreadableFiles.count) JSON files. Nothing was deleted: \(loaded.unreadableFiles.joined(separator: ", "))"
             }
         } catch {
-            storageWarning = "تعذر فتح مجلد التسجيلات: \(error.localizedDescription)"
+            storageWarning = "Could not open the recordings folder: \(error.localizedDescription)"
         }
         interruptionObserver = NotificationCenter.default.addObserver(
             forName: AVAudioSession.interruptionNotification, object: nil, queue: .main
@@ -132,7 +132,7 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
         guard let requestedAt = pendingStartAt, isSceneActive, !isRequestingPermission, activeRecord == nil else { return }
         guard Date().timeIntervalSince(requestedAt) < Self.pendingStartLifetime else {
             pendingStartAt = nil
-            outcome = .failed("انتهت صلاحية طلب التسجيل المعلّق. اضغط ابدأ من جديد.")
+            outcome = .failed("The pending recording request expired. Tap Record to start again.")
             return
         }
         switch AVAudioApplication.shared.recordPermission {
@@ -160,13 +160,13 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
 
     private func micDenied() {
         pendingStartAt = nil
-        outcome = .failed("الوصول للميكروفون مرفوض. فعّله من Settings › Privacy & Security › Microphone.")
+        outcome = .failed("Microphone access was denied. Enable it in Settings > Privacy & Security > Microphone.")
     }
 
     private func beginRecording() {
         pendingStartAt = nil
         guard let store else {
-            outcome = .failed("لا يمكن التسجيل: مجلد التسجيلات غير متاح.")
+            outcome = .failed("Cannot record: the recordings folder is unavailable.")
             return
         }
         stopPlayback()
@@ -199,11 +199,11 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
             outcome = .idle
         } catch {
             if metadataSaved {
-                record.fail("تعذر بدء التسجيل: \(error.localizedDescription)")
+                record.fail("Could not start recording: \(error.localizedDescription)")
                 upsert(record)
             }
             try? session.setActive(false, options: .notifyOthersOnDeactivation)
-            outcome = .failed("تعذر بدء التسجيل: \(error.localizedDescription)")
+            outcome = .failed("Could not start recording: \(error.localizedDescription)")
         }
     }
 
@@ -217,8 +217,8 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
         record.finishRecording(durationSeconds: duration, interrupted: interrupted)
         upsert(record)
         outcome = .saved(isSceneActive
-            ? "حُفظ الصوت."
-            : "حُفظ الصوت. التفريغ يكمل عند فتح التطبيق.")
+            ? "Audio saved."
+            : "Audio saved. Transcription resumes when you open the app.")
         processPendingTranscriptions()
     }
 
@@ -243,7 +243,7 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
         Task { @MainActor in
             guard let current = self.recorder, ObjectIdentifier(current) == failed else { return }
             self.stopRecording(interrupted: true)
-            self.outcome = .failed("انقطع التسجيل: \(message). احتفظنا بملف الصوت لمحاولة استعادته.")
+            self.outcome = .failed("Recording was interrupted: \(message). The audio file was kept for recovery.")
         }
     }
 
@@ -280,7 +280,7 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
                 $0.finishTranscription(segments: output.segments, resolvedLocale: output.resolvedLocale,
                                        engine: output.engine, processingSeconds: output.elapsedSeconds)
             }
-            outcome = .saved("اكتمل التفريغ المحلي.")
+            outcome = .saved("Local transcription complete.")
             organizePendingCaptures()
         } catch {
             if Task.isCancelled || error is CancellationError {
@@ -288,7 +288,7 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
             } else {
                 let message = error.localizedDescription
                 update(id) { $0.fail(message) }
-                outcome = .failed("فشل التفريغ: \(message)")
+                outcome = .failed("Transcription failed: \(message)")
             }
         }
     }
@@ -319,7 +319,7 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
                                                 recordedAt: record.recordedAt)
                 } catch {
                     failed = true
-                    outcome = .failed("النص محفوظ، وتعذّر تنظيمه: \(error.localizedDescription)")
+                    outcome = .failed("Transcript saved, but organization failed: \(error.localizedDescription)")
                     break
                 }
             }
@@ -350,11 +350,11 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
             do {
                 let report = try await LocalTranscriber.prepareAssets(for: locale)
                 assetReports[locale] = report
-                let message = "assets \(locale.rawValue) جاهزة للتفريغ المحلي (resolved \(report.resolved ?? "?"), \(report.status))."
+                let message = "Local assets for \(locale.rawValue) are ready (resolved \(report.resolved ?? "?"), \(report.status))."
                 prepareNotes[locale] = PrepareNote(text: message, isError: false)
                 outcome = .saved(message)
             } catch {
-                let message = "تعذر تجهيز \(locale.rawValue): \(error.localizedDescription)"
+                let message = "Could not prepare \(locale.rawValue): \(error.localizedDescription)"
                 prepareNotes[locale] = PrepareNote(text: message, isError: true)
                 outcome = .failed(message)
                 assetReports[locale] = await LocalTranscriber.assetReport(for: locale)
@@ -385,7 +385,7 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
             self.player = player
             playingID = record.id
         } catch {
-            outcome = .failed("تعذر تشغيل التسجيل: \(error.localizedDescription)")
+            outcome = .failed("Could not play the recording: \(error.localizedDescription)")
         }
     }
 
@@ -439,7 +439,7 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
             try store.save(record)
         } catch {
             // In-memory state is kept; the audio file is untouched.
-            storageWarning = "تعذر حفظ بيانات التسجيل \(record.id.uuidString): \(error.localizedDescription)"
+            storageWarning = "Could not save recording metadata \(record.id.uuidString): \(error.localizedDescription)"
         }
     }
 

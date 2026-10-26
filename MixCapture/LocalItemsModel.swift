@@ -37,7 +37,7 @@ final class LocalItemsModel {
         do {
             snapshot = try store.load()
         } catch {
-            storageError = "تعذّرت قراءة البيانات المحلية الحالية، وتم إيقاف الحفظ حتى لا تُستبدل. \(error.localizedDescription)"
+            storageError = "Could not read existing local data. Saving is paused to protect it. \(error.localizedDescription)"
         }
         UNUserNotificationCenter.current().delegate = delegate
     }
@@ -152,7 +152,7 @@ final class LocalItemsModel {
 
     func mergeBackup(data: Data) throws {
         guard !data.isEmpty, data.count <= 10 * 1_024 * 1_024 else {
-            throw LocalItemsError.invalidBackup("حجم الملف غير صالح؛ الحد الأقصى 10 MB.")
+            throw LocalItemsError.invalidBackup("Invalid file size. The maximum is 10 MB.")
         }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -229,7 +229,7 @@ final class LocalItemsModel {
     @discardableResult
     private func schedule(id: UUID, requestPermission: Bool) async throws -> ReminderItem {
         guard let item = reminder(id), item.status != .completed else { throw LocalItemsError.notFound }
-        if item.scheduledDate <= Date() { return try update(id, .failed, "الموعد مرّ") }
+        if item.scheduledDate <= Date() { return try update(id, .failed, "The scheduled time has passed") }
         if item.automaticSchedulingEligible != true {
             var candidate = snapshot
             if let index = candidate.reminders.firstIndex(where: { $0.id == id }) {
@@ -256,12 +256,12 @@ final class LocalItemsModel {
         // State and time may have changed while the permission prompt was showing.
         current = try currentReminderOrCancel(id)
         if current.status == .completed { return current }
-        if current.scheduledDate <= Date() { return try update(id, .failed, "الموعد مرّ") }
+        if current.scheduledDate <= Date() { return try update(id, .failed, "The scheduled time has passed") }
 
         switch settings.authorizationStatus {
         case .authorized, .provisional, .ephemeral: break
         default:
-            return try update(id, .needsPermission, "الإشعارات غير مسموحة. فعّلها من الإعدادات ثم أعد المحاولة.")
+            return try update(id, .needsPermission, "Notifications are not allowed. Enable them in Settings, then try again.")
         }
 
         let content = UNMutableNotificationContent()
@@ -324,7 +324,7 @@ final class LocalItemsModel {
             }
             if r.status == .scheduled, r.scheduledDate > Date(), !pending.contains(r.id.uuidString) {
                 candidate.reminders[i].status = .failed
-                candidate.reminders[i].scheduleError = "لا يوجد إشعار معلّق على الجهاز؛ أعد الجدولة."
+                candidate.reminders[i].scheduleError = "No pending notification was found on this device. Try scheduling again."
                 changed = true
             }
         }

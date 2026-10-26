@@ -39,13 +39,13 @@ enum LocalTranscriber {
         var errorDescription: String? {
             switch self {
             case .unsupportedLocale(let locale):
-                return "الـlocale \(locale) غير مدعومة في DictationTranscriber على هذا الجهاز."
+                return "DictationTranscriber does not support \(locale) on this device."
             case .assetsNotInstalled(let locale, let status):
-                return "assets التفريغ المحلي لـ\(locale) غير مثبتة (\(status)). اضغط Prepare أولاً؛ لا يحدث أي تنزيل تلقائي. الصوت محفوظ."
+                return "Local transcription assets for \(locale) are not installed (\(status)). Tap Prepare first. Your audio is saved."
             case .installIncomplete(let locale, let status):
-                return "انتهى Prepare لكن حالة assets لـ\(locale) هي \(status)."
+                return "Preparation ended, but assets for \(locale) are \(status)."
             case .noSpeech:
-                return "لم يُرجع المحرك أي نص (no speech). الصوت الأصلي محفوظ ويمكن إعادة المحاولة."
+                return "No speech was recognized. Your original audio is saved; you can retry."
             }
         }
     }

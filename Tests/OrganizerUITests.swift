@@ -7,7 +7,7 @@ import XCTest
 /// The microphone/recording path is intentionally not exercised (no fixture microphone).
 @MainActor
 final class OrganizerUITests: XCTestCase {
-    private let recipeTitle = "مكرونة بالطماطم"
+    private let recipeTitle = "Tomato pasta"
     private let timeout: TimeInterval = 20
 
     override func setUpWithError() throws {
@@ -18,7 +18,7 @@ final class OrganizerUITests: XCTestCase {
 
     private func launch(dark: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["--ui-testing", "-AppleLanguages", "(ar)", "-AppleLocale", "ar_EG"]
+        app.launchArguments = ["--ui-testing", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         if dark { app.launchArguments += ["--ui-dark"] }
         app.launch()
         return app
@@ -41,16 +41,18 @@ final class OrganizerUITests: XCTestCase {
         return element
     }
 
-    /// Labels remain reliable when SwiftUI omits tab identifiers; don't depend on RTL positions.
+    /// Labels remain reliable when SwiftUI omits tab identifiers; don't depend on tab positions.
     private func openTab(_ app: XCUIApplication, id: String, index: Int) {
+        let label = ["Today", "Library", "Expenses", "Settings"][index]
         let byID = element(app, id: id)
         if byID.waitForExistence(timeout: 5), byID.isHittable {
             byID.tap()
-            return
+        } else {
+            let button = app.tabBars.buttons.matching(NSPredicate(format: "label CONTAINS %@", label)).firstMatch
+            require(button, "tab \(label)").tap()
         }
-        let label = ["اليوم", "المكتبة", "المصاريف", "الإعدادات"][index]
-        let button = app.tabBars.buttons.matching(NSPredicate(format: "label CONTAINS %@", label)).firstMatch
-        require(button, "tab \(label)").tap()
+        require(app.tabBars.buttons.matching(NSPredicate(format: "label CONTAINS %@", label)).firstMatch,
+                "English tab label \(label)")
     }
 
     private func waitForHome(_ app: XCUIApplication) {
@@ -109,8 +111,8 @@ final class OrganizerUITests: XCTestCase {
 
         openRecipe(app)
         // Detail shows ingredients and steps seeded for the recipe.
-        require(element(app, labelContaining: "حبات طماطم"), "recipe ingredient in detail")
-        XCTAssertTrue(element(app, labelContaining: "اسلق المكرونة").exists, "recipe step missing in detail")
+        require(element(app, labelContaining: "3 tomatoes"), "recipe ingredient in detail")
+        XCTAssertTrue(element(app, labelContaining: "Boil the pasta").exists, "recipe step missing in detail")
         screenshot(app, "03-recipe-detail")
         goBack(app)
         require(element(app, id: "library.add"), "library after back from recipe")
@@ -135,7 +137,7 @@ final class OrganizerUITests: XCTestCase {
         let review = element(app, id: "home.review")
         require(review, "home.review card (ambiguous reminder seeded for review)")
         review.tap()
-        require(app.navigationBars["المراجعة"], "review screen navigation bar")
+        require(app.navigationBars["Review"], "review screen navigation bar")
         // The seeded ambiguous reminder must be listed as a reviewable item.
         let draft = app.cells.firstMatch
         require(draft, "review queue row for the ambiguous reminder")
@@ -143,7 +145,7 @@ final class OrganizerUITests: XCTestCase {
         draft.tap()
         let reviewSave = require(element(app, id: "review.save"), "review.save in review editor")
         let validation = require(element(app, id: "review.validation"), "missing-date validation")
-        XCTAssertTrue(validation.label.contains("اختر موعد"), "Review must require an explicit reminder date")
+        XCTAssertTrue(validation.label.localizedCaseInsensitiveContains("reminder date"), "Review must require an explicit reminder date")
         // iOS 26 represents a disabled toolbar item as Other with isEnabled=true.
         // A physical tap must still leave the invalid draft in its editor.
         reviewSave.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
@@ -166,17 +168,17 @@ final class OrganizerUITests: XCTestCase {
         waitForHome(app)
         openTab(app, id: "tab.library", index: 1)
         selectFilter(app, id: "library.filter.task")
-        require(libraryLinks(app, title: "مراجعة ميزانية مشروع Home").firstMatch, "open fixture task").tap()
+        require(libraryLinks(app, title: "Review Home budget").firstMatch, "open fixture task").tap()
         require(element(app, id: "library.toggle"), "complete task").tap()
-        XCTAssertTrue(element(app, id: "library.toggle").label.contains("إلغاء"), "Task did not complete")
+        XCTAssertTrue(element(app, id: "library.toggle").label.localizedCaseInsensitiveContains("incomplete"), "Task did not complete")
         app.terminate()
         app = launch()
         waitForHome(app)
         openTab(app, id: "tab.library", index: 1)
         selectFilter(app, id: "library.filter.task")
-        require(libraryLinks(app, title: "مراجعة ميزانية مشروع Home").firstMatch, "open saved task").tap()
+        require(libraryLinks(app, title: "Review Home budget").firstMatch, "open saved task").tap()
         let toggle = require(element(app, id: "library.toggle"), "saved completed task")
-        XCTAssertTrue(toggle.label.contains("إلغاء"), "Task completion was not persisted")
+        XCTAssertTrue(toggle.label.localizedCaseInsensitiveContains("incomplete"), "Task completion was not persisted")
         screenshot(app, "14-completed-task")
     }
 
@@ -195,7 +197,7 @@ final class OrganizerUITests: XCTestCase {
         // The sheet shows an undoable receipt once the command is organized and committed.
         require(element(app, id: "receipt.undo"), "receipt with undo after saving the command")
         screenshot(app, "10-command-receipt")
-        let close = app.buttons["إغلاق"]
+        let close = app.buttons["Close"]
         require(close, "command sheet close button").tap()
 
         openTab(app, id: "tab.expenses", index: 2)
@@ -215,10 +217,10 @@ final class OrganizerUITests: XCTestCase {
         input.typeText("paid 61.35 EGP for taxi")
         require(element(app, id: "action.saveCommand"), "save command").tap()
         require(element(app, id: "receipt.undo"), "undo receipt").tap()
-        require(app.buttons["تراجع"], "confirm undo").tap()
-        require(app.staticTexts["تم التراجع"], "receipt refresh after undo")
+        require(app.buttons["Undo"], "confirm undo").tap()
+        require(app.staticTexts["Undone"], "receipt refresh after undo")
         screenshot(app, "13-undone-receipt")
-        require(app.buttons["إغلاق"], "close command").tap()
+        require(app.buttons["Close"], "close command").tap()
         openTab(app, id: "tab.expenses", index: 2)
         XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "61.35")).firstMatch.exists,
                        "Undone expense remains in the app")

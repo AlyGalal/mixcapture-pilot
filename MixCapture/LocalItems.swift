@@ -58,18 +58,18 @@ enum LocalItemsError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .invalidAmount: return "المبلغ غير صالح. استخدم أرقاماً مع كسر عشري حتى خانتين."
-        case .emptyTitle: return "العنوان مطلوب."
-        case .pastDate: return "الموعد مرّ. اختر وقتاً في المستقبل."
-        case .notFound: return "العنصر غير موجود."
-        case .missingDate: return "اختر تاريخًا ووقتًا واضحين."
-        case .invalidDateRange: return "نهاية الموعد يجب أن تكون بعد بدايته."
-        case .notSupported: return "هذا النوع غير مدعوم."
-        case .invalidText: return "البيانات غير صالحة أو النص طويل جدًا."
-        case .invalidCalendar: return "أكمل مزامنة الموعد أو تراجع عنه قبل تعديل توقيته."
-        case .invalidBackup(let detail): return "النسخة الاحتياطية غير صالحة: \(detail)"
-        case .storageUnavailable(let detail): return "التخزين المحلي غير متاح، لم يتم الحفظ. \(detail)"
-        case .uncertain(let detail): return "جُدول الإشعار على الجهاز لكن تعذّر حفظ الحالة محلياً؛ ستؤكده المحاولة التالية دون تكرار. \(detail)"
+        case .invalidAmount: return "Invalid amount. Use a number with up to two decimal places."
+        case .emptyTitle: return "A title is required."
+        case .pastDate: return "This time has passed. Choose a future time."
+        case .notFound: return "Item not found."
+        case .missingDate: return "Choose a specific date and time."
+        case .invalidDateRange: return "The end time must be after the start time."
+        case .notSupported: return "This type is not supported."
+        case .invalidText: return "Invalid data or text is too long."
+        case .invalidCalendar: return "Finish syncing or undo this event before changing its time."
+        case .invalidBackup(let detail): return "Invalid backup: \(detail)"
+        case .storageUnavailable(let detail): return "Local storage is unavailable. Changes were not saved. \(detail)"
+        case .uncertain(let detail): return "The notification was scheduled, but its local status could not be saved. Retrying will confirm it without creating a duplicate. \(detail)"
         }
     }
 }

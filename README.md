@@ -1,12 +1,14 @@
 # MixCapture
 
-An experimental personal iPhone voice organizer with an Arabic RTL interface. Audio and transcription stay on the device. The bundled Arabic/English code-switch Whisper medium-Q8 model needs no runtime download or account.
+An experimental personal iPhone voice organizer with an English LTR interface. Audio and transcription stay on the device. The bundled Arabic/English code-switch Whisper medium-Q8 model needs no runtime download or account.
+
+Build 5 uses English for navigation, forms, settings, dates, validation and permission messages while preserving Arabic/English input and original content.
 
 Build 5 has Today, Library, Expenses and Settings. Explicit Arabic/English commands create notes, project tasks, shopping items, recipes, classified expenses, local notification reminders and local calendar items. Ambiguous, negated and unsupported commands enter a review queue. This is a deterministic local phrase interpreter, not general AI understanding. Original text and source receipts are retained; retries are idempotent and actions can be undone.
 
 Calendar connection is optional and uses EventKit permission, with one-way creation and ownership-checked undo. It exports event titles/times rather than raw source transcripts; iOS may synchronize this metadata through configured calendar accounts. Backup JSON merges additively with existing UUIDs winning; imported reminders and events are never automatically activated. Audio is shared separately. Keep the app installed when updating to preserve its local data.
 
-Examples: `paid 120.50 EGP for Uber`, `remind me in 20 minutes to call Sam`, `add milk and eggs to shopping list Groceries`. Arabic examples and help are built into the app. Review transaction dates, amounts and notification status when testing.
+Examples: `paid 120.50 EGP for Uber`, `remind me in 20 minutes to call Sam`, `add milk and eggs to shopping list Groceries`. Arabic voice-command examples are included; the interface and help stay in English. Review transaction dates, amounts and notification status when testing.
 
 Shortcuts provides Start Recording and Toggle Recording. For Back Tap, create a shortcut using Toggle Recording (or URL `mixcapture://toggle` followed by Open URLs), then select it in Settings > Accessibility > Touch > Back Tap. Unlock/foreground and microphone permission may be required. Local transcription is foreground-only, supports recordings up to 30 minutes, and does not guarantee every English word keeps Latin script.
 

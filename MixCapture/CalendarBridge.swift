@@ -21,7 +21,7 @@ final class CalendarBridge {
         isBusy = true
         defer { isBusy = false }
         guard try await events.requestFullAccessToEvents() else {
-            throw BridgeError(message: "لم تسمح بالوصول للتقويم. المواعيد محفوظة داخل التطبيق.")
+            throw BridgeError(message: "Calendar access was not granted. Events are saved in MixCapture.")
         }
         enabled = true
         UserDefaults.standard.set(true, forKey: "calendarSyncEnabled")
@@ -32,7 +32,7 @@ final class CalendarBridge {
     func disconnect() {
         enabled = false
         UserDefaults.standard.set(false, forKey: "calendarSyncEnabled")
-        statusMessage = "توقفت الإضافة التلقائية. المواعيد الموجودة في التقويم محفوظة."
+        statusMessage = "Automatic calendar additions are off. Existing calendar events are kept."
     }
 
     func syncPending() async {
@@ -45,7 +45,7 @@ final class CalendarBridge {
 
     private func synchronize() throws {
         guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else {
-            throw BridgeError(message: "الوصول للتقويم غير مسموح. افتح إعدادات الجهاز لتفعيله.")
+            throw BridgeError(message: "Calendar access is not allowed. Enable it in iPhone Settings.")
         }
         let model = LocalItemsModel.shared
         var count = 0
@@ -59,7 +59,7 @@ final class CalendarBridge {
                 event = existing
             } else {
                 guard let calendar = events.defaultCalendarForNewEvents, calendar.allowsContentModifications else {
-                    throw BridgeError(message: "لا يوجد تقويم قابل للكتابة على الجهاز.")
+                    throw BridgeError(message: "No writable calendar is available on this device.")
                 }
                 event = EKEvent(eventStore: events)
                 event.calendar = calendar
@@ -73,23 +73,23 @@ final class CalendarBridge {
                 try events.save(event, span: .thisEvent, commit: true)
             }
             guard let identifier = event.eventIdentifier else {
-                throw BridgeError(message: "أُضيف الموعد لكن لم نحصل على معرّفه. أعد المزامنة بأمان.")
+                throw BridgeError(message: "The event was added, but its identifier was unavailable. You can safely retry syncing.")
             }
             try model.updateExternalCalendarID(id: item.id, value: identifier)
             count += 1
         }
-        statusMessage = count > 0 ? "أُضيف \(count) موعد للتقويم." : "التقويم متصل. المواعيد الجديدة الواضحة تُضاف تلقائيًا."
+        statusMessage = count > 0 ? "Added \(count) events to your calendar." : "Calendar connected. New events with clear dates and times are added automatically."
     }
 
     /// Removes only events whose URL proves that this app created them, then undoes local data.
     /// Retrying after an interrupted undo is safe: missing native events are already removed.
     func undoSource(_ sourceID: UUID) throws {
-        guard !isBusy else { throw BridgeError(message: "انتظر انتهاء مزامنة التقويم ثم أعد المحاولة.") }
+        guard !isBusy else { throw BridgeError(message: "Wait for calendar syncing to finish, then try again.") }
         let model = LocalItemsModel.shared
         let owned = model.libraryItems.filter { $0.kind == .calendar && $0.sourceCaptureID == sourceID }
         if owned.contains(where: { $0.externalCalendarID != nil }) {
             guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else {
-                throw BridgeError(message: "أعد السماح بالوصول للتقويم قبل التراجع عن مواعيده.")
+                throw BridgeError(message: "Grant calendar access again before undoing its events.")
             }
             // Mark every event in one local commit before removing any external event.
             try model.prepareCalendarUndo(sourceID: sourceID)

@@ -202,7 +202,7 @@
 			};
 			buildConfigurationList = A1000000000000000000000A /* Build configuration list for PBXProject "MixCapture" */;
 			compatibilityVersion = "Xcode 14.0";
-			developmentRegion = ar;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				ar,

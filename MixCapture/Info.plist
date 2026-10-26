@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>ar</string>
+	<string>en</string>
 	<key>CFBundleDisplayName</key>
 	<string>MixCapture</string>
 	<key>CFBundleExecutable</key>
@@ -34,9 +34,9 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>يحتاج MixCapture إلى الوصول الكامل للتقويم ليُنشئ أحداثاً تخصّه من أوامرك المنظَّمة، ويتراجع عن هذه الأحداث (يحذفها) عند طلبك. لا يقرأ التطبيق أحداثك الأخرى ولا يرفعها.</string>
+	<string>MixCapture uses full calendar access to create events from your organized commands and remove its own events when you undo them. It does not read or upload your other events.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>يسجّل MixCapture صوتك محلياً ليحوّله إلى نص وينظّمه على جهازك. لا يتم رفع أي تسجيل.</string>
+	<string>MixCapture records and transcribes your voice locally, then organizes it on your device. No recording is uploaded.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
