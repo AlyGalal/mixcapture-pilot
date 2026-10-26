@@ -1,144 +1,32 @@
-# MixCapture Pilot
+# MixCapture
 
-## الواجهة الإنجليزية وتحديث التفريغ — البناء 5
+An experimental personal iPhone voice organizer with an English LTR interface. Audio and transcription stay on the device. The bundled Arabic/English code-switch Whisper medium-Q8 model needs no runtime download or account.
 
-الواجهة والإعدادات ورسائل الخطأ بالإنجليزية واتجاهها LTR، مع دعم المحتوى والتفريغ العربي والإنجليزي والمختلط. يستبدل النموذج الصغير بنموذج Arabic-CS medium-Q8 مضمّن (823 MB)، بدون قاموس أو استبدال كلمات. النموذج أكبر وأبطأ؛ تحسن عينة محلية لا يضمن دقة كل الكلام. يلزم التحقق من زمن التفريغ والذاكرة على الآيفون. يتضمن أيضًا إصلاح قراءة «مئة» بجانب «مائة» في المبالغ المكتوبة، مع اختبارات تمنع إسقاط المئة من المبلغ.
+Build 5 uses English for navigation, forms, settings, dates, validation and permission messages while preserving Arabic/English input and original content.
 
-البيانات ومسار Back Tap كما في البناء 4؛ حدّث بنفس حساب التوقيع بدون حذف التطبيق. ابدأ من Today للتسجيل أو الكتابة، وراجع العناصر في Library والمبالغ في Expenses، والتحكم بالتنظيم التلقائي والتقويم من Settings. فلاتر Library تظهر في شبكة مرنة. الصوت الشخصي ونتائجه التجريبية لا يدخلان البناء العام أو اختبارات CI؛ احفظ ملفات التجربة على الكمبيوتر خارج مجلدات المزامنة.
+Build 5 has Today, Library, Expenses and Settings. Explicit Arabic/English commands create notes, project tasks, shopping items, recipes, classified expenses, local notification reminders and local calendar items. Ambiguous, negated and unsupported commands enter a review queue. This is a deterministic local phrase interpreter, not general AI understanding. Original text and source receipts are retained; retries are idempotent and actions can be undone.
 
-## النسخة المتكاملة — البناء 4
+Calendar connection is optional and uses EventKit permission, with one-way creation and ownership-checked undo. It exports event titles/times rather than raw source transcripts; iOS may synchronize this metadata through configured calendar accounts. Backup JSON merges additively with existing UUIDs winning; imported reminders and events are never automatically activated. Audio is shared separately. Keep the app installed when updating to preserve its local data.
 
-واجهة عربية بأربع شاشات: **اليوم، المكتبة، المصاريف، الإعدادات**. تسجّل أو تكتب أمرًا، فيُحفظ النص الأصلي وتُستخرج منه العناصر الواضحة محليًا. المكتبة تجمع الملاحظات والمشاريع والمهام وقوائم التسوق والوصفات والمواعيد. المصاريف لها تصنيفات وملخصات شهرية منفصلة لكل عملة. التذكيرات تستخدم إشعارات iOS المحلية، والتقويم يمكن ربطه اختياريًا بتقويم الآيفون من الإعدادات.
+Examples: `paid 120.50 EGP for Uber`, `remind me in 20 minutes to call Sam`, `add milk and eggs to shopping list Groceries`. Arabic voice-command examples are included; the interface and help stay in English. Review transaction dates, amounts and notification status when testing.
 
-التنظيم يعتمد على قواعد محلية للأوامر الواضحة، وليس مساعدًا يفهم كل صياغة. المواعيد والمبالغ الملتبسة تذهب إلى «المراجعة»، حيث تختار النوع وتصحح البيانات قبل الحفظ. لكل مصدر نتيجة محفوظة تمنع تكرار الإضافة، وزر تراجع. التحديث لا ينفّذ التسجيلات القديمة أو تسجيلات معمل الاختبار تلقائيًا.
+Shortcuts provides Start Recording and Toggle Recording. For Back Tap, create a shortcut using Toggle Recording (or URL `mixcapture://toggle` followed by Open URLs), then select it in Settings > Accessibility > Touch > Back Tap. Unlock/foreground and microphone permission may be required. Local transcription is foreground-only, supports recordings up to 30 minutes, and does not guarantee every English word keeps Latin script.
 
-### أول تجربة بعد التثبيت
+Build 5 replaces the small model with the pinned 823 MB medium-Q8 model. It uses more memory and may take longer; real-device Metal memory, latency and accuracy remain acceptance checks. The shared money parser also recognizes the Arabic spelling of one hundred without dropping it from amounts.
 
-1. حدّث التطبيق بنفس حساب التوقيع وبنفس هوية التطبيق **بدون حذفه** للحفاظ على بياناتك.
-2. افتحه واضغط الميكروفون واسمح بالميكروفون. النموذج المصري/الإنجليزي مضمّن؛ لا تحتاج زر Prepare. سجّل جملة قصيرة ثم أوقف التسجيل وانتظر التفريغ داخل التطبيق.
-3. جرّب أيضًا زر لوحة المفاتيح لعزل اختبار التنظيم عن دقة السمع. استخدم أمرًا واضحًا مثل `paid 120.50 EGP for Uber` أو «فكرني بعد 10 دقايق أكلم أحمد».
-4. اسمح بالإشعارات عندما تحفظ أول تذكير، ثم راجع أن حالته «مجدول»؛ رفض الإذن يحفظ التذكير ويعرض إعادة المحاولة.
-5. من «المكتبة» راجع المهام والقوائم والوصفات، ومن «المصاريف» راجع المبلغ والعملة والتصنيف. استخدم المراجعة لأي نتيجة غير مؤكدة، والتراجع لإزالة ما أضافه مصدر واحد.
-6. ربط تقويم iPhone اختياري من الإعدادات. الربط يضيف عنوان الموعد وتوقيته فقط باتجاه واحد، وقد يزامنهما iOS عبر حسابات التقويم المفعّلة؛ تعديل حدث داخل التطبيق لا يعدّل نسخته الخارجية. التراجع يزيل فقط الأحداث التي أنشأها التطبيق ويستطيع إثبات ملكيتها.
+## Build and verification
 
-### Back Tap: بدء وإيقاف بنفس الاختصار
+Requires Xcode/iOS SDK 26 or later on macOS. Public GitHub Actions builds without signing:
 
-أنشئ اختصارًا في تطبيق **Shortcuts** باستخدام إجراء **MixCapture → Toggle Recording**، واحفظه باسم «سجّل فكرة». إذا لم يظهر الإجراء، استخدم إجراء URL بقيمة `mixcapture://toggle` ثم Open URLs. بعد ذلك: **Settings → Accessibility → Touch → Back Tap → Double Tap → سجّل فكرة**. النقرتان تبدأان التسجيل، والنقرتان التاليتان توقفانه. قد يحتاج النظام فتح التطبيق أو فك القفل، فانتظر علامة التسجيل قبل الكلام. إجراء **Start Recording** والرابط `mixcapture://record` يظلان متاحين للبدء فقط.
-
-### البيانات والنسخ الاحتياطي
-
-الصوت والتفريغ والتنظيم داخل الجهاز، ولا يوجد حساب أو رفع تلقائي للصوت داخل التطبيق. من الإعدادات صدّر ملف JSON أو استورده: الدمج إضافي، والموجود عندك يفوز عند تطابق المعرفات. الاسترجاع لا يشغّل تنبيهات مستوردة ولا ينشر مواعيدها تلقائيًا. JSON لا يشمل ملفات الصوت؛ مشاركة الصوت متاحة من بطاقة التسجيل. حذف التطبيق يزيل بياناته، لذلك احتفظ بنسخة قبل إعادة تثبيت مختلفة.
-
-البناء الآلي يشغّل فحوص البيانات والتفريغ المختلط والتنظيم، ويجمع تطبيق iPhone، ثم يختبر الواجهة على محاكي iPhone ويلتقط صورًا. تشغيل الميكروفون وإشعار حقيقي وBack Tap على الهاتف خطوات تحقق منفصلة بعد توصيله. أوامر Mac/CI: `bash scripts/build-unsigned.sh` ثم `bash scripts/test-ui.sh`.
-
----
-
-## ملاحظات النسخ السابقة والتشخيص
-
-نسخة تجريبية شخصية لـ **iPhone 13 Pro Max / iOS 27.0.1** لاختبار التسجيل وBack Tap والتفريغ المحلي وخلط العربي والإنجليزي داخل الجملة.
-
-البناء 3 يضيف **Mixed Arabic + English (Whisper)** كاختيار افتراضي. يستخدم whisper.cpp 1.8.2 ونموذج small_egy_acft_q8_0 المخصص للمصري والإنجليزي، المضمّن داخل التطبيق (حوالي 264 MB). لا يحتاج زر Prepare أو تنزيلًا أثناء التفريغ، ولا يرفع الصوت. هذا تحسين مرشح يحتاج مقارنة التسجيلات الفعلية؛ لا يوجد ضمان للحفاظ على كتابة كل كلمة إنجليزية.
-
-اختر Mixed ثم استخدم «أعد التفريغ» على تسجيل قديم للمقارنة على نفس الصوت. تظل النتيجة السابقة محفوظة في سجل النتائج وتصدير JSON؛ لا تحذف التطبيق عند تحديثه. محرك Apple العربي/الإنجليزي ما زال متاحًا للمقارنة، وأزرار Prepare تخص تجهيز ملفاته فقط. يرفض Whisper التسجيلات الأطول من 30 دقيقة صراحةً دون قص الصوت.
-
-تضيف النسخة الثانية مصاريف شهرية مصنفة وتذكيرات بإشعارات محلية. راجع المبلغ والفئة والموعد وأدخلها بنفسك قبل الحفظ؛ الاستخراج التلقائي من الكلام والكتابة في Apple Calendar لم يُنفّذا بعد.
-
-## مسار التشغيل
-
-Back Tap → يفتح التطبيق → يبدأ التسجيل بعد السماح بالميكروفون → توقف التسجيل → يظل الصوت محفوظًا → التفريغ المحلي بالمحرك المختار → النص ووقت المعالجة وتقييمك للمكس.
-
-- يستخدم Whisper المحلي للمكس، مع `DictationTranscriber` و`SpeechAnalyzer` من Apple للمقارنة. لا يحتاج حسابًا للذكاء الاصطناعي.
-- ملفات Whisper مضمّنة في IPA. تجهيز ملفات Apple قد يحتاج اتصالًا أول مرة من أزرار Apple Prepare. بعدها اختبر في وضع الطيران مع إغلاق Wi-Fi أيضًا.
-- لا يوجد مسار تفريغ سحابي أو انتقال تلقائي إليه. عدم توفر اللغة/الملفات يظهر كخطأ، والصوت يظل محفوظًا.
-- في مقارنة Apple، اللغة العربية المطلوبة `ar-EG`، ويُعرض البديل الفعلي الذي يرجعه النظام إن اختلف. في Whisper، `ar+en` اسم ملف إعداد متعدد اللغات؛ يعرض حقل resolved اللغة الأساسية التي اكتشفها النموذج، وليس قائمة بكل اللغات التي نُطقت.
-- يعمل Back Tap من خلال فتح التطبيق. لا نفترض إمكانية بدء ميكروفون جديد والتطبيق مغلق في الخلفية أو الهاتف مقفول؛ اختبار ذلك موضح بالأسفل.
-- استخدم زر الإيقاف داخل التطبيق. التفريغ يُستكمل والتطبيق ظاهر؛ فتحه لاحقًا يتيح استكمال التسجيلات المعلقة. لا توجد جلسة تسجيل صامتة للتحايل على قيود الخلفية.
-- التسجيلات وبياناتها محلية ومستبعدة من نسخ التطبيق الاحتياطية. تصدير النتائج يتم بطلبك. فقد/حذف التطبيق قد يفقد هذه النسخة المحلية.
-
-## البناء من ويندوز من غير Mac تملكه
-
-ملف IPA يُبنى على جهاز macOS تابع لـGitHub Actions. هذا يرفع **الكود فقط**؛ تسجيلات الآيفون لا تدخل GitHub.
-
-1. افتح تبويب **Actions** في [ريبو الكود التجريبي العام](https://github.com/AlyGalal/mixcapture-pilot/actions)، أو نزّل IPA من [Releases](https://github.com/AlyGalal/mixcapture-pilot/releases).
-2. افتح **Build iPhone pilot** ثم **Run workflow**، أو افتح نتيجة البناء التلقائي لآخر تعديل.
-3. بعد نجاح البناء نزّل artifact اسمه **mixcapture-unsigned** وفك ZIP.
-4. الملف `MixCapture-unsigned.ipa` يحتاج توقيعًا قبل تشغيله. AltStore Classic يوقّعه بحسابك أثناء التثبيت.
-
-البناء يتحقق من تجميع التطبيق ضد iPhone SDK ويشغّل فحوص بيانات التسجيل والمبالغ العربية/الإنجليزية والتخزين وملخصات العملات ومواعيد التذكير. لا يثبت نجاح الميكروفون أو التفريغ أو Back Tap أو وصول الإشعارات على جهاز حقيقي.
-
-أوامر البناء على macOS/CI:
-
-```sh
+```
 bash scripts/build-unsigned.sh
+bash scripts/test-ui.sh
 ```
 
-النواتج: IPA غير موقّع، SHA-256، إصدار Xcode وSDK وSHA الكود، وسجل البناء.
+The pipeline runs Foundation model/money/state/parser checks, adversarial Arabic/English cases, a real Whisper smoke test against the public ArzEn sample (including repeatability, AAC conversion, silence and cancellation), a device build, and native simulator UI tests with screenshots. Synthetic UI fixtures exist only in Debug simulator builds with `--ui-testing`. No personal audio or data is in this repository or its artifacts. The public sample is evaluation-only and is not bundled.
 
-## تثبيت النسخة على الآيفون من ويندوز
+The IPA is unsigned and requires signing through a sideloading tool. Real-device microphone, background behavior, notifications, EventKit permission and Back Tap still require device testing. Free developer provisioning requires periodic renewal. The bundled model and whisper.cpp licenses/attribution are in ThirdPartyNotices.txt.
 
-مسار التجربة: **AltStore Classic + AltServer for Windows**. لا يحتاج jailbreak أو شراء Mac. توافق جميع خطواته مع iOS 27.0.1 يظل اختبارًا على جهازك.
+## Build 6: transcription recovery
 
-1. اتبع [دليل AltStore الرسمي لويندوز](https://faq.altstore.io/altstore-classic/how-to-install-altstore-windows) لتثبيت متطلبات Apple وAltServer. يوجد مسار خاص بنسخة iCloud من Microsoft Store؛ لا تحذف برامج Apple الموجودة عشوائيًا.
-2. وصّل الآيفون بكابل USB، وافتحه، ثم وافق على **Trust This Computer** إذا ظهر.
-3. من AltServer اختر **Install AltStore → جهازك**. سجّل الدخول بحساب Apple بنفسك في نافذة البرنامج؛ التطبيق التجريبي لا يطلب الحساب أو كلمة السر.
-4. على الآيفون وافق على الثقة بملف المطور وفعّل **Developer Mode** إذا طلب iOS ذلك. تفعيله قد يتطلب إعادة تشغيل الآيفون.
-5. انقل ملف IPA إلى Files على الآيفون، مثلًا عبر iCloud Drive أو مشاركة ملف محلية. هذا ملف التطبيق فقط.
-6. افتح **AltStore → My Apps → +** وحدد IPA، وانتظر التوقيع والتثبيت، ثم افتح **MixCapture Pilot**.
-
-بالحساب المجاني تنتهي صلاحية التطبيق بعد **7 أيام** وتحتاج Refresh عبر AltStore/AltServer. يوجد حد لعدد التطبيقات الموقعة. راجع [القيود الرسمية](https://faq.altstore.io/altstore-classic/your-altstore).
-
-بديل لاحق لو كان التجديد مزعجًا: عضوية Apple Developer ومسار توزيع موقّع. ليست مطلوبة لاختبار النسخة المجانية، ولا يتم شراء عضوية أو رفع مفاتيح توقيع في هذا المشروع.
-
-## ربط Back Tap
-
-1. افتح التطبيق أول مرة، اختر Mixed واسمح بالميكروفون. نموذجه مضمّن ولا يحتاج Prepare؛ جرّب تسجيلًا يدويًا أولًا.
-2. افتح **Shortcuts → + → Add Action** وابحث عن **MixCapture** ثم اختر **Start Recording / ابدأ التسجيل**. احفظ الاختصار باسم **سجّل فكرة**.
-3. إذا لم يظهر الإجراء بعد التثبيت، استخدم اختصارًا يحتوي على **URL** بقيمة `mixcapture://record` ثم **Open URLs**.
-4. افتح **Settings → Accessibility → Touch → Back Tap → Double Tap** واختر **سجّل فكرة**.
-5. اختبر والهاتف مفتوح أولًا. انتظر ظهور حالة التسجيل قبل الكلام حتى نقيس قص أول كلمة وزمن بدء الميكروفون.
-
-[تعليمات Apple الرسمية](https://support.apple.com/en-gb/guide/shortcuts/apd897693606/ios).
-
-## تجربة المكس والتسجيل
-
-اختر جملة اختبار داخل التطبيق، سجّلها بصوتك، وقارن النص الناتج بالجملة. التقييم يدوي؛ لا نعرض نسبة دقة مصطنعة. لا نترجم أو نستبدل كلمات النص بعد خروجها من المحرك. إعداد Whisper يستخدم تلميح العربية وbeam search بحجم 5 ودرجة حرارة صفر، بلا prompt أو قاموس بدائل. مفردات Apple المساعدة تخص مسار Apple فقط.
-
-أصل نموذج Mixed في البناء 5: Seif-Eldeen-Sameh / whisper-medium-arabic-codeswitched (Apache-2.0)، وتحويل GGML Q8 من eliasbatshon/mktub-whisper-codeswitch-ggml، revision ec43229722f37dc233fce436609f671c7725bc99. التراخيص والإسناد مضمّنان داخل التطبيق. العينة العامة من ArzEn قد تتداخل مع بيانات التدريب؛ اختبارها وظيفي وليس قياس دقة مستقلًا. يلزم اختبار تسجيلاتك الفعلية على الآيفون قبل اعتماد الثبات.
-
-| الحالة | ما نراجعه |
-| --- | --- |
-| «ضيف review الـbudget لمشروع Home وفكرني بيه بكرة 10 AM» | Home وreview وbudget والوقت |
-| «Add milk وعلبتين yogurt لقائمة Groceries» | الكلمات والكمية واسم القائمة |
-| «حط design meeting الخميس 3 PM لمدة thirty minutes» | اليوم والوقت والمدة |
-| «مش Friday، خليها Thursday» | حفظ التصحيح والنفي |
-| «فكرني الساعة خمسة» | النص الأصلي من غير اختراع صباحًا/مساءً |
-
-اختبر نفس الصوت في Mixed ثم Apple العربي/الإنجليزي عند الحاجة، وراجع النتائج السابقة تحت التسجيل. كرّر الجملة ثلاث مرات وسجل اختلاف الكتابة والكمية والتوقيتات، وأوقف أي فيديو/صوت خارجي أثناء الاختبار. لا يكفي ظهور الحروف العربية واللاتينية للحكم بأن الكلام كله صحيح.
-
-اختبارات الجهاز المطلوبة:
-
-- الهاتف مفتوح، التطبيق في الخلفية، الهاتف مقفول، والتطبيق مغلق من app switcher. سجّل هل احتجت فك القفل وكم استغرق بدء التسجيل.
-- وضع الطيران + Wi-Fi مغلق بعد تجهيز اللغة. كرر جمل المكس، ثم أعد فتح التطبيق للتأكد من بقاء الصوت والنص.
-- قفل الشاشة أثناء التسجيل، مكالمة/Siri أثناء التسجيل، رفض الميكروفون، وإعادة التفريغ بعد خطأ. لا نفترض سلامة آخر جزء من ملف قُطع أثناء الكتابة قبل اختبار الجهاز.
-- قارن أسماء المشاريع والأرقام والتوقيتات والإنجليزي المكتوب بحروف عربية. تقييم المعنى منفصل عن جودة الاحتفاظ بالحروف الإنجليزية.
-
-صدّر نتائج التجربة من التطبيق عند رغبتك. صدّر الملفات إلى مجلد محلي مثل `device-results/`؛ المجلد مستبعد من Git. لا ترفع الصوت الشخصي إلى الريبو.
-
-## تجربة المصاريف والتذكيرات
-
-- من تبويب المصروفات أضف مبلغًا مثل `٣٥٠٫٥٠` واختر العملة والفئة. راجع ملخص الشهر؛ كل عملة تُجمع وحدها. يمكنك أيضًا فتح نموذج المصروف من نص تسجيل.
-- من تبويب التذكيرات أضف عنوانًا وموعدًا بعد دقيقتين، واسمح بالإشعارات عند الحفظ. اترك التطبيق وانتظر التنبيه، ثم جرّب إلغاء تذكير قبل موعده.
-- عند رفض إذن الإشعارات يظل التذكير محفوظًا بحالة واضحة، ويمكن إعادة المحاولة بعد السماح من الإعدادات. لا ترفع بياناتك أو ملف التصدير إلى GitHub.
-
-## حالة التحقق
-
-البناء 6 يضيف مرحلة التفريغ والوقت المنقضي وزر Stop transcription مع الاحتفاظ بالصوت والنص السابق. محرك Mixed يوقف المحاولة تعاونيًا بعد الأكبر من دقيقتين أو 12 ضعف مدة الصوت؛ انتهاء المهلة يحتاج إعادة محاولة يدوية ولا يعيد الملف في حلقة تلقائية. تحميل النموذج وبعض عمليات Metal لا تقبل إيقافًا فوريًا. الخروج للخلفية يعيد الملف من البداية عند العودة، وليس استكمالًا من منتصفه. النموذج وإعدادات التعرف لم تتغير؛ هذه وسائل تشخيص واسترداد وليست إثباتًا لحل بطء جهاز بعينه.
-
-- تجميع SDK وcheck البيانات: تظهر نتيجتهما في GitHub Actions لكل SHA.
-- التثبيت والتوقيع وBack Tap والميكروفون ودقة المكس على iPhone 13 Pro Max: تحتاج تجربة الجهاز؛ لا يعتبرها نجاح البناء اختبارات ناجحة.
-
-## مصادر المحرك المحلي
-
-- [DictationTranscriber](https://developer.apple.com/documentation/speech/dictationtranscriber)
-- [مفردات التعرف المخصصة](https://developer.apple.com/documentation/speech/analysiscontext/contextualstrings)
-- [حدود بدء الميكروفون في الخلفية — Apple DTS](https://developer.apple.com/forums/thread/816408)
+Mixed Whisper now shows its current stage and elapsed time and supports Stop transcription while preserving audio and any previous text. A cooperative whole-run budget of max(120 seconds, 12 times audio duration) yields a retryable terminal failure, without an automatic retry loop. Model loading and native Metal graphs cannot be forcibly interrupted; the app retains their context until they return. Backgrounding restarts the file from the beginning on return. The model and decoding parameters are unchanged; the cause of an individual slow run still needs real-device measurement.

@@ -289,6 +289,42 @@ struct RecordDock: View {
 
 // MARK: - Recording sheet
 
+private struct TranscriptionProgressView: View {
+    let model: CaptureModel
+
+    var body: some View {
+            VStack(spacing: 12) {
+                ProgressView()
+                Text("Transcribing on this device…").font(.headline)
+                if let control = model.transcriptionControl {
+                    TimelineView(.periodic(from: .now, by: 1)) { _ in
+                        Text("\(control.stage) · \(Int(control.elapsedSeconds)) s elapsed")
+                            .font(.subheadline.monospacedDigit())
+                            .accessibilityIdentifier("recording.transcriptionStage")
+                        if control.hasTimedOut {
+                            Text("Time limit reached. Waiting for the local engine to stop. Your audio is saved.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                Text("Keep the app open. Leaving the app restarts this file from the beginning when you return. Your audio is saved.")
+                    .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                if let warning = model.storageWarning {
+                    Text(warning + " The stopped state may not survive relaunch.")
+                        .font(.footnote).foregroundStyle(.red)
+                }
+                if model.transcriptionStopMessage != nil {
+                    Text("Stopping the local engine… Your audio is saved.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                } else {
+                    Button("Stop transcription — keep audio") { model.stopTranscription() }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("recording.stopTranscription")
+                }
+            }
+    }
+}
+
 struct RecordingSheet: View {
     @Bindable var model: CaptureModel
     @Environment(\.dismiss) private var dismiss
@@ -303,7 +339,7 @@ struct RecordingSheet: View {
                     if !model.isRecording, !model.isWaitingToStart, let latest = model.records.first {
                         VStack(alignment: .leading, spacing: 8) {
                             SectionTitle(title: "Latest recording", symbol: "waveform")
-                            RecordingCard(model: model, recordID: latest.id)
+                            RecordingCard(model: model, recordID: latest.id, showsTranscriptionProgress: false)
                         }
                     }
                 }
@@ -342,32 +378,7 @@ struct RecordingSheet: View {
         case .recording:
             recordingView
         case .processing:
-            VStack(spacing: 12) {
-                ProgressView()
-                Text("Transcribing on this device…").font(.headline)
-                if let control = model.transcriptionControl {
-                    TimelineView(.periodic(from: .now, by: 1)) { _ in
-                        Text("\(control.stage) · \(Int(control.elapsedSeconds)) s elapsed")
-                            .font(.subheadline.monospacedDigit())
-                            .accessibilityIdentifier("recording.transcriptionStage")
-                        if control.hasTimedOut {
-                            Text("Time limit reached. Waiting for the local engine to stop. Your audio is saved.")
-                                .font(.footnote).foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                Text("Keep the app open. Leaving the app restarts this file from the beginning when you return. Your audio is saved.")
-                    .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                if model.transcriptionStopMessage != nil {
-                    Text("Stopping the local engine… Your audio is saved.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                } else {
-                    Button("Stop transcription — keep audio") { model.stopTranscription() }
-                        .buttonStyle(.bordered)
-                        .accessibilityIdentifier("recording.stopTranscription")
-                }
-            }
-            .organizerCard()
+            TranscriptionProgressView(model: model).organizerCard()
         case .saved(let message):
             VStack(spacing: 12) {
                 Label(message, systemImage: "checkmark.circle.fill").foregroundStyle(Theme.teal)
@@ -437,6 +448,7 @@ struct RecordingSheet: View {
 struct RecordingCard: View {
     @Bindable var model: CaptureModel
     let recordID: UUID
+    var showsTranscriptionProgress = true
     private let items = LocalItemsModel.shared
     @State private var organizing = false
     @State private var organizeError: String?
@@ -464,6 +476,9 @@ struct RecordingCard: View {
                     Text(error).font(.footnote).foregroundStyle(.red).textSelection(.enabled)
                 }
                 Text(durationText(record)).font(.caption).foregroundStyle(.secondary)
+                if showsTranscriptionProgress, model.transcribingID == record.id {
+                    TranscriptionProgressView(model: model)
+                }
 
                 HStack {
                     Button {
@@ -480,7 +495,7 @@ struct RecordingCard: View {
                     } label: {
                         Label("Transcribe again", systemImage: "arrow.clockwise")
                     }
-                    .disabled(!record.canRetry)
+                    .disabled(!record.canRetry || model.transcribingID == record.id)
                     .accessibilityIdentifier("recording.retry")
                 }
                 .buttonStyle(.bordered)
