@@ -64,7 +64,6 @@ final class CalendarBridge {
                 event = EKEvent(eventStore: events)
                 event.calendar = calendar
                 event.title = item.title
-                event.notes = item.body
                 event.startDate = start
                 event.endDate = end
                 event.url = Self.marker(item.id)

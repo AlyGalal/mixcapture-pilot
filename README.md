@@ -4,7 +4,7 @@ An experimental personal iPhone voice organizer with an Arabic RTL interface. Au
 
 Build 4 has Today, Library, Expenses and Settings. Explicit Arabic/English commands create notes, project tasks, shopping items, recipes, classified expenses, local notification reminders and local calendar items. Ambiguous, negated and unsupported commands enter a review queue. This is a deterministic local phrase interpreter, not general AI understanding. Original text and source receipts are retained; retries are idempotent and actions can be undone.
 
-Calendar connection is optional and uses EventKit permission, with one-way creation and ownership-checked undo. Backup JSON merges additively with existing UUIDs winning; imported reminders and events are never automatically activated. Audio is shared separately. Keep the app installed when updating to preserve its local data.
+Calendar connection is optional and uses EventKit permission, with one-way creation and ownership-checked undo. It exports event titles/times rather than raw source transcripts; iOS may synchronize this metadata through configured calendar accounts. Backup JSON merges additively with existing UUIDs winning; imported reminders and events are never automatically activated. Audio is shared separately. Keep the app installed when updating to preserve its local data.
 
 Examples: `paid 120.50 EGP for Uber`, `remind me in 20 minutes to call Sam`, `add milk and eggs to shopping list Groceries`. Arabic examples and help are built into the app. Review transaction dates, amounts and notification status when testing.
 
