@@ -12,9 +12,18 @@ mkdir -p build
 swiftc -parse-as-library MixCapture/CaptureRecord.swift Tests/ModelChecks.swift \
   -o build/model-checks
 build/model-checks | tee build/model-checks.log
-swiftc -parse-as-library MixCapture/LocalItems.swift Tests/LocalItemsChecks.swift \
+swiftc -parse-as-library MixCapture/LocalItems.swift MixCapture/Organizer.swift Tests/LocalItemsChecks.swift \
   -o build/items-checks
 build/items-checks | tee build/items-checks.log
+swiftc -parse-as-library MixCapture/LocalItems.swift MixCapture/Organizer.swift Tests/OrganizerChecks.swift \
+  -o build/organizer-checks
+build/organizer-checks | tee build/organizer-checks.log
+swiftc -parse-as-library MixCapture/LocalItems.swift MixCapture/Organizer.swift Tests/OrganizerAdversarialChecks.swift \
+  -o build/organizer-adversarial-checks
+build/organizer-adversarial-checks | tee build/organizer-adversarial-checks.log
+
+# App icon is generated natively with CoreGraphics (no bitmap/SVG assets in the repo).
+swift scripts/make-icon.swift build
 
 # Pinned official binary and multilingual weights. Downloads happen only at build time.
 mkdir -p build/Whisper

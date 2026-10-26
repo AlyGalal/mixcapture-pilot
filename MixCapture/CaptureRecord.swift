@@ -124,6 +124,8 @@ struct CaptureRecord: Codable, Identifiable, Equatable {
     var transcriptSegments: [String]?
     /// Previous successful results, oldest first. Optional so JSON written before build 3 decodes.
     var transcriptHistory: [TranscriptSnapshot]?
+    /// Nil for legacy recordings: upgrading never posts old test clips as real actions.
+    var organizationEligible: Bool?
     var errorMessage: String?
     var processingSeconds: Double?
     var assessment: ManualAssessment
@@ -144,6 +146,7 @@ struct CaptureRecord: Codable, Identifiable, Equatable {
         self.assessment = .unassessed
         self.device = device
         self.osVersion = osVersion
+        self.organizationEligible = testCase == nil
     }
 
     /// Display text. ponytail: segments are joined with one space for display/export;
@@ -315,7 +318,7 @@ struct ResultsExport: Codable {
 
     init(records: [CaptureRecord], exportedAt: Date = Date()) {
         self.exportedAt = exportedAt
-        app = "MixCapture Pilot 1.0 (3)"
+        app = "MixCapture 1.0 (4)"
         note = "Local transcription; manual assessment only. Engine, resolvedLocale and elapsedSeconds describe the retained transcript; textIsPreviousResult marks a result from an earlier successful attempt. previousResults lists earlier successful results of the same audio that a later run replaced. requestedLocale ar+en is a profile label (multilingual Whisper, Arabic language hint), not a BCP 47 locale."
         results = records.map { record in
             Row(captureID: record.id,

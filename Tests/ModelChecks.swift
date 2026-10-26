@@ -32,6 +32,9 @@ struct ModelChecks {
                                    requestedLocale: "ar-EG", testCase: TestCase.find("review-budget-home"),
                                    device: "iPhone14,3", osVersion: "iOS 27.0.1")
         check(record.status == .recording, "new capture starts in recording state")
+        check(record.organizationEligible == false, "diagnostic test clips never auto-organize")
+        let personal = CaptureRecord(requestedLocale: "ar+en", testCase: nil, device: "test", osVersion: "test")
+        check(personal.organizationEligible == true, "new personal clips are eligible for organization")
         record.finishRecording(durationSeconds: 4.25, interrupted: false)
         check(record.status == .pendingTranscription, "stopped capture waits for transcription")
         record.beginTranscription()
@@ -180,6 +183,7 @@ struct ModelChecks {
         }
         """
         let legacy = try JSONDecoder().decode(CaptureRecord.self, from: Data(legacyJSON.utf8))
+        check(legacy.organizationEligible == nil, "legacy clips never acquire auto actions on upgrade")
         check(legacy.transcriptHistory == nil && legacy.status == .transcribed && legacy.assessment == .correct,
               "legacy JSON without history decodes")
         check(legacy.requestedLocale == "ar-EG" && legacy.resolvedLocale == "ar-SA" && legacy.engine == appleEngine,
@@ -285,7 +289,7 @@ struct ModelChecks {
         let exportData = try ResultsExport(records: [compare, legacy]).jsonData()
         let exported = try JSONSerialization.jsonObject(with: exportData) as? [String: Any]
         let appVersion = exported?["app"] as? String
-        check(appVersion == "MixCapture Pilot 1.0 (3)", "export version is build 3")
+        check(appVersion == "MixCapture 1.0 (4)", "export version is build 4")
         let exportRows = exported?["results"] as? [[String: Any]] ?? []
         let compareRow = exportRows.first { $0["captureID"] as? String == compareID.uuidString }
         let previous = compareRow?["previousResults"] as? [[String: Any]] ?? []

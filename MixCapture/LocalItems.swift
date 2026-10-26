@@ -37,17 +37,24 @@ struct ReminderItem: Codable, Identifiable, Equatable {
     var sourceTranscript: String?
     var status: ReminderStatus = .pending
     var scheduleError: String?
+    /// Only new or explicitly scheduled reminders recover automatically; imports never activate.
+    var automaticSchedulingEligible: Bool? = true
 }
 
 struct LocalItemsSnapshot: Codable, Equatable {
     var expenses: [ExpenseItem] = []
     var reminders: [ReminderItem] = []
+    var library: [OrganizerItem]? = nil
+    var reviewQueue: [OrganizationDraft]? = nil
+    var organizationReceipts: [OrganizationReceipt]? = nil
 }
 
 enum LocalItemsError: LocalizedError {
     case invalidAmount, emptyTitle, pastDate, notFound
     case storageUnavailable(String)
     case uncertain(String)
+    case missingDate, invalidDateRange, notSupported, invalidText, invalidCalendar
+    case invalidBackup(String)
 
     var errorDescription: String? {
         switch self {
@@ -55,6 +62,12 @@ enum LocalItemsError: LocalizedError {
         case .emptyTitle: return "العنوان مطلوب."
         case .pastDate: return "الموعد مرّ. اختر وقتاً في المستقبل."
         case .notFound: return "العنصر غير موجود."
+        case .missingDate: return "اختر تاريخًا ووقتًا واضحين."
+        case .invalidDateRange: return "نهاية الموعد يجب أن تكون بعد بدايته."
+        case .notSupported: return "هذا النوع غير مدعوم."
+        case .invalidText: return "البيانات غير صالحة أو النص طويل جدًا."
+        case .invalidCalendar: return "أكمل مزامنة الموعد أو تراجع عنه قبل تعديل توقيته."
+        case .invalidBackup(let detail): return "النسخة الاحتياطية غير صالحة: \(detail)"
         case .storageUnavailable(let detail): return "التخزين المحلي غير متاح، لم يتم الحفظ. \(detail)"
         case .uncertain(let detail): return "جُدول الإشعار على الجهاز لكن تعذّر حفظ الحالة محلياً؛ ستؤكده المحاولة التالية دون تكرار. \(detail)"
         }
@@ -110,6 +123,7 @@ func validatedTitle(_ title: String) throws -> String {
 }
 
 func validateFutureDate(_ date: Date, now: Date = Date()) throws {
+    guard date.timeIntervalSince1970.isFinite else { throw LocalItemsError.invalidText }
     guard date > now else { throw LocalItemsError.pastDate }
 }
 

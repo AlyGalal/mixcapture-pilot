@@ -1,33 +1,24 @@
-# MixCapture Pilot
+# MixCapture
 
-A native iPhone voice-capture pilot with fully on-device Egyptian Arabic/English transcription, local expenses and local reminder notifications. iOS 26+. No cloud transcription, analytics or AI account.
+An experimental personal iPhone voice organizer with an Arabic RTL interface. Audio and transcription stay on the device. The bundled Egyptian Arabic/English Whisper small-Q8 model needs no runtime download or account.
 
-## Mixed transcription (build 3)
+Build 4 has Today, Library, Expenses and Settings. Explicit Arabic/English commands create notes, project tasks, shopping items, recipes, classified expenses, local notification reminders and local calendar items. Ambiguous, negated and unsupported commands enter a review queue. This is a deterministic local phrase interpreter, not general AI understanding. Original text and source receipts are retained; retries are idempotent and actions can be undone.
 
-The default Mixed Arabic+English profile uses whisper.cpp 1.8.2 and a bundled Egyptian/English fine-tuned Whisper Small Q8 model (~264 MB). It uses an Arabic language hint, beam search size 5, temperature zero, no earlier-recording context and no prompt. Text is retained verbatim; no translation or phonetic-word replacement is performed after recognition. The app performs no model download or audio upload in this path.
+Calendar connection is optional and uses EventKit permission, with one-way creation and ownership-checked undo. Backup JSON merges additively with existing UUIDs winning; imported reminders and events are never automatically activated. Audio is shared separately. Keep the app installed when updating to preserve its local data.
 
-The model is Ibrahim Amin's Egyptian Arabic/English fine-tune, with ACFT adaptation and GGML Q8 conversion by AshrafMMahdy. Binary/model URLs are pinned and SHA-256 checked at build time. OpenAI/ggml MIT and upstream Apache-2.0 notices are included in the app. [Model provenance](https://huggingface.co/AshrafMMahdy/futo-egyptian-arabic-models/tree/0b4a13bc110d51207d971178c9bb054475cb3c62).
+Examples: `paid 120.50 EGP for Uber`, `remind me in 20 minutes to call Sam`, `add milk and eggs to shopping list Groceries`. Arabic examples and help are built into the app. Review transaction dates, amounts and notification status when testing.
 
-Apple DictationTranscriber Arabic/English remain manual comparison choices. Their Prepare buttons download Apple's assets explicitly. Successful same-audio retries preserve previous text, engine, locale, elapsed time and manual assessment in history and JSON export. Existing recordings remain readable. Whisper recordings over 30 minutes are rejected explicitly without modifying audio.
+Shortcuts provides Start Recording and Toggle Recording. For Back Tap, create a shortcut using Toggle Recording (or URL `mixcapture://toggle` followed by Open URLs), then select it in Settings > Accessibility > Touch > Back Tap. Unlock/foreground and microphone permission may be required. Local transcription is foreground-only, supports recordings up to 30 minutes, and does not guarantee every English word keeps Latin script.
 
-## Validation and limits
+## Build and verification
 
-Run on macOS: `bash scripts/build-unsigned.sh`.
+Requires Xcode/iOS SDK 26 or later on macOS. Public GitHub Actions builds without signing:
 
-The build checks legacy persistence/history, money validation and reminders, then runs the actual model against the [public ArzEn authors' example](https://sites.google.com/view/arzen-corpus/resources). It checks Arabic/Latin anchor words, same-file repeatability on its CPU, 44.1-kHz stereo AAC conversion, silence and cancellation before compiling the iPhone app. Research audio is fetched for CI evaluation only; it is not committed, packaged or uploaded as an artifact.
+```
+bash scripts/build-unsigned.sh
+bash scripts/test-ui.sh
+```
 
-ArzEn may overlap the fine-tune's training data. This is a functional regression check, not held-out accuracy evidence. Real-device code switching, English orthography, memory and latency still require representative phone recordings. Script preservation is not guaranteed.
+The pipeline runs Foundation model/money/state/parser checks, adversarial Arabic/English cases, a real Whisper smoke test against the public ArzEn sample (including repeatability, AAC conversion, silence and cancellation), a device build, and native simulator UI tests with screenshots. Synthetic UI fixtures exist only in Debug simulator builds with `--ui-testing`. No personal audio or data is in this repository or its artifacts. The public sample is evaluation-only and is not bundled.
 
-## Install and Back Tap
-
-The IPA is unsigned. Sign/install using a local sideloader such as [iloader](https://iloader.app/) with your own Apple account. Keep the existing app and use the same signing identity when updating to retain its data. Free developer signing requires periodic renewal; do not delete the app to refresh it.
-
-After a manual recording works, save the app's Start Recording action as a personal Shortcut. Alternatively, use a URL action `mixcapture://record` followed by Open URLs. Select it under Settings > Accessibility > Touch > Back Tap.
-
-Recording begins after the app enters the foreground and microphone permission is granted. Unlocking may be necessary. Ongoing file transcription runs in the foreground and is safely cancelled/deferred when backgrounded.
-
-## Other local features
-
-Expenses use integer minor units, user-selected categories and separate monthly totals per currency. Reminders use local notifications. Amounts, categories and dates require manual review/entry; automatic command extraction and Apple Calendar integration are not implemented.
-
-Source and synthetic text fixtures only: do not submit personal audio, exported results, device identifiers or signing credentials to this repository.
+The IPA is unsigned and requires signing through a sideloading tool. Real-device microphone, background behavior, notifications, EventKit permission and Back Tap still require device testing. Free developer provisioning requires periodic renewal. The bundled model and whisper.cpp licenses/attribution are in ThirdPartyNotices.txt.

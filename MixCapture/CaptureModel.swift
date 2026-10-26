@@ -29,7 +29,7 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
 
     var records: [CaptureRecord] = []
     var selectedLocale: PilotLocale = .mixedArabicEnglish
-    var selectedCaseID: String? = TestCase.all.first?.id
+    var selectedCaseID: String?
     var assetReports: [PilotLocale: LocalTranscriber.AssetReport] = [:]
     var preparingLocale: PilotLocale?
     /// Last Apple Prepare outcome per locale, shown next to its button.
@@ -48,6 +48,7 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
     @ObservationIgnored private var recorder: AVAudioRecorder?
     @ObservationIgnored private var player: AVAudioPlayer?
     @ObservationIgnored private var transcriptionTask: Task<Void, Never>?
+    @ObservationIgnored private var organizationTask: Task<Void, Never>?
     @ObservationIgnored private var isRequestingPermission = false
     @ObservationIgnored private var isSceneActive = false
     @ObservationIgnored private var interruptionObserver: NSObjectProtocol?
@@ -101,6 +102,7 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
         if isActive {
             startIfPossible()
             processPendingTranscriptions()
+            organizePendingCaptures()
             if assetReports.isEmpty { refreshAssetStatus() }
         } else if isBackground {
             // Heavy transcription is foreground-only; the capture stays pending and resumes on open.
@@ -118,6 +120,12 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
 
     func cancelPendingStart() {
         pendingStartAt = nil
+    }
+
+    func toggleRecording() {
+        if isRecording { stopRecording() }
+        else if isWaitingToStart { cancelPendingStart() }
+        else { requestStart() }
     }
 
     private func startIfPossible() {
@@ -166,6 +174,7 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
         var record = CaptureRecord(requestedLocale: selectedLocale.rawValue,
                                    testCase: TestCase.find(selectedCaseID),
                                    device: deviceDescription, osVersion: osDescription)
+        record.organizationEligible = selectedCaseID == nil && LocalItemsModel.shared.automaticOrganizationEnabled
         let session = AVAudioSession.sharedInstance()
         var metadataSaved = false
         do {
@@ -208,8 +217,8 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
         record.finishRecording(durationSeconds: duration, interrupted: interrupted)
         upsert(record)
         outcome = .saved(isSceneActive
-            ? "حُفظ الصوت (saved)."
-            : "حُفظ الصوت (saved). التفريغ يبدأ عند فتح التطبيق.")
+            ? "حُفظ الصوت."
+            : "حُفظ الصوت. التفريغ يكمل عند فتح التطبيق.")
         processPendingTranscriptions()
     }
 
@@ -271,7 +280,8 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
                 $0.finishTranscription(segments: output.segments, resolvedLocale: output.resolvedLocale,
                                        engine: output.engine, processingSeconds: output.elapsedSeconds)
             }
-            outcome = .saved("اكتمل التفريغ المحلي في \(output.elapsedSeconds.formatted(.number.precision(.fractionLength(1)))) s.")
+            outcome = .saved("اكتمل التفريغ المحلي.")
+            organizePendingCaptures()
         } catch {
             if Task.isCancelled || error is CancellationError {
                 update(id) { $0.deferTranscription() }
@@ -285,6 +295,41 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
 
     func setAssessment(_ assessment: ManualAssessment, for id: UUID) {
         update(id) { $0.assessment = assessment }
+    }
+
+    /// The receipt is committed with the actions, so crashes and retries cannot duplicate them.
+    func organizePendingCaptures() {
+        let items = LocalItemsModel.shared
+        guard isSceneActive, organizationTask == nil, items.automaticOrganizationEnabled else { return }
+        let pending = records.filter {
+            $0.organizationEligible == true && $0.status == .transcribed &&
+            $0.transcript?.isEmpty == false && items.receipt(for: $0.id) == nil
+        }
+        guard !pending.isEmpty else { return }
+        organizationTask = Task {
+            var failed = false
+            defer {
+                organizationTask = nil
+                if !failed { organizePendingCaptures() }
+            }
+            for record in pending {
+                guard isSceneActive, items.automaticOrganizationEnabled else { break }
+                do {
+                    _ = try await items.organize(text: record.transcript ?? "", sourceID: record.id,
+                                                recordedAt: record.recordedAt)
+                } catch {
+                    failed = true
+                    outcome = .failed("النص محفوظ، وتعذّر تنظيمه: \(error.localizedDescription)")
+                    break
+                }
+            }
+            await CalendarBridge.shared.syncPending()
+        }
+    }
+
+    func audioURL(for record: CaptureRecord) -> URL? {
+        guard let url = store?.audioURL(for: record), FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return url
     }
 
     // MARK: Assets (explicit actions only)

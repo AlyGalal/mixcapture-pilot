@@ -3,55 +3,57 @@ import SwiftUI
 @main
 struct MixCaptureApp: App {
     @State private var model = CaptureModel.shared
-    @State private var selectedTab = 0
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
-            TabView(selection: $selectedTab) {
-                ContentView(model: model)
-                    .tabItem { Label("التسجيل", systemImage: "mic") }.tag(0)
-                ExpensesScreen()
-                    .tabItem { Label("المصروفات", systemImage: "creditcard") }.tag(1)
-                RemindersScreen()
-                    .tabItem { Label("التذكيرات", systemImage: "bell") }.tag(2)
-            }
+            OrganizerShell(model: model)
                 .environment(\.layoutDirection, .rightToLeft)
-                .onChange(of: model.isWaitingToStart) { _, waiting in
-                    if waiting { selectedTab = 0 }
-                }
-                .onChange(of: model.isRecording) { _, recording in
-                    if recording { selectedTab = 0 }
-                }
+                .task { await SimulatorFixtures.installIfRequested() }
                 .onOpenURL { url in
                     // mixcapture://record — same queued start path as the App Shortcut.
+                    // OrganizerShell reacts to model.isWaitingToStart/isRecording (home + sheet).
                     if url.scheme == "mixcapture", url.host() == "record" {
-                        selectedTab = 0
                         model.requestStart()
+                    } else if url.scheme == "mixcapture", url.host() == "toggle" {
+                        model.toggleRecording()
                     }
                 }
         }
         .onChange(of: scenePhase, initial: true) { _, phase in
             model.sceneChanged(isActive: phase == .active, isBackground: phase == .background)
-            if phase == .active { Task { await LocalItemsModel.shared.reconcile() } }
+            if phase == .active {
+                Task {
+                    await LocalItemsModel.shared.reconcile()
+                    await CalendarBridge.shared.syncPending()
+                }
+            }
         }
     }
 }
 
+/// Diagnostics / engine lab. Reached from Settings (`embedded: true`) inside its NavigationStack.
 struct ContentView: View {
     @Bindable var model: CaptureModel
+    var embedded = false
 
     var body: some View {
-        NavigationStack {
-            List {
-                captureSection
-                testCaseSection
-                engineSection
-                recordingsSection
-                exportSection
-            }
-            .navigationTitle("MixCapture Pilot")
+        if embedded {
+            list
+        } else {
+            NavigationStack { list }
         }
+    }
+
+    private var list: some View {
+        List {
+            captureSection
+            testCaseSection
+            engineSection
+            recordingsSection
+            exportSection
+        }
+        .navigationTitle("التشخيص (MixCapture)")
     }
 
     private var statusLine: (text: String, symbol: String, isError: Bool) {

@@ -20,7 +20,23 @@
 		A10000000000000000000031 /* whisper.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A10000000000000000000030 /* whisper.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A10000000000000000000032 /* small_egy_acft_q8_0.bin in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000033 /* small_egy_acft_q8_0.bin */; };
 		A10000000000000000000034 /* ThirdPartyNotices.txt in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000035 /* ThirdPartyNotices.txt */; };
+		A10000000000000000000044 /* Organizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000040 /* Organizer.swift */; };
+		A10000000000000000000045 /* OrganizerUI.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000041 /* OrganizerUI.swift */; };
+		A10000000000000000000046 /* CalendarBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000042 /* CalendarBridge.swift */; };
+		A10000000000000000000047 /* SimulatorFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000043 /* SimulatorFixtures.swift */; };
+		A10000000000000000000049 /* GeneratedAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000048 /* GeneratedAssets.xcassets */; };
+		B10000000000000000000007 /* OrganizerUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000006 /* OrganizerUITests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B1000000000000000000000C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10000000000000000000006;
+			remoteInfo = MixCapture;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
 		A10000000000000000000036 /* Embed Frameworks */ = {
@@ -49,6 +65,13 @@
 		A10000000000000000000030 /* whisper.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = build/Whisper/whisper.xcframework; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000033 /* small_egy_acft_q8_0.bin */ = {isa = PBXFileReference; lastKnownFileType = file; path = build/Whisper/small_egy_acft_q8_0.bin; sourceTree = SOURCE_ROOT; };
 		A10000000000000000000035 /* ThirdPartyNotices.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = ThirdPartyNotices.txt; sourceTree = "<group>"; };
+		A10000000000000000000040 /* Organizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Organizer.swift; sourceTree = "<group>"; };
+		A10000000000000000000041 /* OrganizerUI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrganizerUI.swift; sourceTree = "<group>"; };
+		A10000000000000000000042 /* CalendarBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarBridge.swift; sourceTree = "<group>"; };
+		A10000000000000000000043 /* SimulatorFixtures.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulatorFixtures.swift; sourceTree = "<group>"; };
+		A10000000000000000000048 /* GeneratedAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = build/GeneratedAssets.xcassets; sourceTree = SOURCE_ROOT; };
+		B10000000000000000000002 /* MixCaptureUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MixCaptureUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000006 /* OrganizerUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrganizerUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -60,6 +83,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B10000000000000000000004 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -67,6 +97,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000004 /* MixCapture */,
+				B1000000000000000000000D /* Tests */,
 				A10000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -75,6 +106,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000005 /* MixCapture.app */,
+				B10000000000000000000002 /* MixCaptureUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -91,10 +123,23 @@
 				A10000000000000000000017 /* LocalItemsModel.swift */,
 				A10000000000000000000018 /* LocalItemsViews.swift */,
 				A10000000000000000000019 /* WhisperTranscriber.swift */,
+				A10000000000000000000040 /* Organizer.swift */,
+				A10000000000000000000041 /* OrganizerUI.swift */,
+				A10000000000000000000042 /* CalendarBridge.swift */,
+				A10000000000000000000043 /* SimulatorFixtures.swift */,
+				A10000000000000000000048 /* GeneratedAssets.xcassets */,
 				A10000000000000000000035 /* ThirdPartyNotices.txt */,
 				A10000000000000000000015 /* Info.plist */,
 			);
 			path = MixCapture;
+			sourceTree = "<group>";
+		};
+		B1000000000000000000000D /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000006 /* OrganizerUITests.swift */,
+			);
+			path = Tests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -118,6 +163,24 @@
 			productReference = A10000000000000000000005 /* MixCapture.app */;
 			productType = "com.apple.product-type.application";
 		};
+		B10000000000000000000001 /* MixCaptureUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B10000000000000000000008 /* Build configuration list for PBXNativeTarget "MixCaptureUITests" */;
+			buildPhases = (
+				B10000000000000000000003 /* Sources */,
+				B10000000000000000000004 /* Frameworks */,
+				B10000000000000000000005 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B1000000000000000000000B /* PBXTargetDependency */,
+			);
+			name = MixCaptureUITests;
+			productName = MixCaptureUITests;
+			productReference = B10000000000000000000002 /* MixCaptureUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -130,6 +193,10 @@
 				TargetAttributes = {
 					A10000000000000000000006 = {
 						CreatedOnToolsVersion = 16.0;
+					};
+					B10000000000000000000001 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = A10000000000000000000006;
 					};
 				};
 			};
@@ -148,6 +215,7 @@
 			projectRoot = "";
 			targets = (
 				A10000000000000000000006 /* MixCapture */,
+				B10000000000000000000001 /* MixCaptureUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -159,6 +227,14 @@
 			files = (
 				A10000000000000000000032 /* small_egy_acft_q8_0.bin in Resources */,
 				A10000000000000000000034 /* ThirdPartyNotices.txt in Resources */,
+				A10000000000000000000049 /* GeneratedAssets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B10000000000000000000005 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -178,10 +254,30 @@
 				A10000000000000000000026 /* LocalItemsModel.swift in Sources */,
 				A10000000000000000000027 /* LocalItemsViews.swift in Sources */,
 				A10000000000000000000028 /* WhisperTranscriber.swift in Sources */,
+				A10000000000000000000044 /* Organizer.swift in Sources */,
+				A10000000000000000000045 /* OrganizerUI.swift in Sources */,
+				A10000000000000000000046 /* CalendarBridge.swift in Sources */,
+				A10000000000000000000047 /* SimulatorFixtures.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B10000000000000000000003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B10000000000000000000007 /* OrganizerUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B1000000000000000000000B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A10000000000000000000006 /* MixCapture */;
+			targetProxy = B1000000000000000000000C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		A1000000000000000000000C /* Debug */ = {
@@ -228,8 +324,9 @@
 		A1000000000000000000000E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MixCapture/Info.plist;
@@ -252,8 +349,9 @@
 		A1000000000000000000000F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = MixCapture/Info.plist;
@@ -270,6 +368,54 @@
 				SWIFT_STRICT_CONCURRENCY = minimal;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		B10000000000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mixcapture.pilot.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = MixCapture;
+			};
+			name = Debug;
+		};
+		B1000000000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mixcapture.pilot.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = MixCapture;
 			};
 			name = Release;
 		};
@@ -290,6 +436,15 @@
 			buildConfigurations = (
 				A1000000000000000000000E /* Debug */,
 				A1000000000000000000000F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B10000000000000000000008 /* Build configuration list for PBXNativeTarget "MixCaptureUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B10000000000000000000009 /* Debug */,
+				B1000000000000000000000A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>ar</string>
 	<key>CFBundleDisplayName</key>
-	<string>MixCapture Pilot</string>
+	<string>MixCapture</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -19,7 +19,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
-	<string>3</string>
+	<string>4</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -33,8 +33,10 @@
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>يحتاج MixCapture إلى الوصول الكامل للتقويم ليُنشئ أحداثاً تخصّه من أوامرك المنظَّمة، ويتراجع عن هذه الأحداث (يحذفها) عند طلبك. لا يقرأ التطبيق أحداثك الأخرى ولا يرفعها.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>يسجّل MixCapture Pilot صوتك محلياً لاختبار التفريغ (speech-to-text) على الجهاز. لا يتم رفع أي تسجيل.</string>
+	<string>يسجّل MixCapture صوتك محلياً ليحوّله إلى نص وينظّمه على جهازك. لا يتم رفع أي تسجيل.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

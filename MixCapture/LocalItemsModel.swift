@@ -20,8 +20,17 @@ final class LocalItemsModel {
     /// Last background (non-editor) save problem, e.g. during reconcile.
     private(set) var saveError: String?
 
+    var automaticOrganizationEnabled = UserDefaults.standard.object(forKey: "automaticOrganizationEnabled") == nil
+        || UserDefaults.standard.bool(forKey: "automaticOrganizationEnabled") {
+        didSet { UserDefaults.standard.set(automaticOrganizationEnabled, forKey: "automaticOrganizationEnabled") }
+    }
+    var libraryItems: [OrganizerItem] { snapshot.library ?? [] }
+    var reviewItems: [OrganizationDraft] { snapshot.reviewQueue ?? [] }
+    var organizationReceipts: [OrganizationReceipt] { snapshot.organizationReceipts ?? [] }
+
     @ObservationIgnored private let store: LocalItemsStore
     @ObservationIgnored private let delegate = LocalNotificationDelegate()
+    @ObservationIgnored private var isReconciling = false
 
     init(store: LocalItemsStore = .standard) {
         self.store = store
@@ -44,6 +53,112 @@ final class LocalItemsModel {
             throw LocalItemsError.storageUnavailable(error.localizedDescription)
         }
         snapshot = candidate
+        saveError = nil
+    }
+
+    // MARK: Organization
+
+    func receipt(for sourceID: UUID) -> OrganizationReceipt? { snapshot.receipt(for: sourceID) }
+
+    @discardableResult
+    func organize(text: String, sourceID: UUID, recordedAt: Date = Date()) async throws -> OrganizationReceipt {
+        if let receipt = receipt(for: sourceID) { return receipt }
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, text.utf8.count <= 100_000,
+              recordedAt.timeIntervalSinceReferenceDate.isFinite else { throw LocalItemsError.invalidText }
+        let drafts = OrganizerParser.parse(text, now: recordedAt)
+        guard !drafts.isEmpty,
+              let result = snapshot.applyingOrganization(drafts, sourceID: sourceID, now: Date()) else {
+            throw LocalItemsError.invalidText
+        }
+        try commit(result.snapshot) // all actions and their receipt are durable before any permission prompt
+        for id in result.reminderIDs {
+            do { _ = try await schedule(id: id) }
+            catch {
+                if let current = reminder(id), current.status != .completed { saveError = error.localizedDescription }
+            }
+        }
+        return receipt(for: sourceID) ?? result.receipt
+    }
+
+    func applyReview(_ draft: OrganizationDraft) async throws {
+        let result = try snapshot.applyingReview(draft, now: Date())
+        try commit(result.snapshot)
+        if case .reminder(let item) = result.record {
+            do { _ = try await schedule(id: item.id) }
+            catch {
+                if let current = reminder(item.id), current.status != .completed { saveError = error.localizedDescription }
+            }
+        }
+    }
+
+    func undoOrganization(sourceID: UUID) throws {
+        let result = try snapshot.undoingOrganization(sourceID: sourceID)
+        try commit(result.snapshot)
+        removeNotifications(result.removedReminderIDs)
+    }
+
+    func upsertLibrary(_ proposed: OrganizerItem) throws {
+        var item = proposed
+        var candidate = snapshot
+        if let index = candidate.library?.firstIndex(where: { $0.id == item.id }), let existing = candidate.library?[index] {
+            if existing.sourceCaptureID != nil {
+                item.body = existing.body
+                item.sourceCaptureID = existing.sourceCaptureID
+                item.createdAt = existing.createdAt
+            }
+            item.externalCalendarID = existing.externalCalendarID
+            item.calendarSyncEligible = existing.calendarSyncEligible
+            if let external = existing.externalCalendarID,
+               external.hasPrefix("pending:") || external.hasPrefix("undo:"),
+               item.dueDate != existing.dueDate || item.endDate != existing.endDate {
+                throw LocalItemsError.invalidCalendar
+            }
+            candidate.library?[index] = try validatedLibraryItem(item)
+        } else {
+            item.externalCalendarID = nil // a manually-created row cannot claim an external event
+            candidate.library = (candidate.library ?? []) + [try validatedLibraryItem(item)]
+        }
+        try commit(candidate)
+    }
+
+    func deleteLibrary(id: UUID) throws {
+        guard libraryItems.contains(where: { $0.id == id }) else { throw LocalItemsError.notFound }
+        var candidate = snapshot
+        candidate.library?.removeAll { $0.id == id }
+        try commit(candidate)
+    }
+
+    func toggleLibrary(id: UUID) throws {
+        var candidate = snapshot
+        guard let index = candidate.library?.firstIndex(where: { $0.id == id }),
+              let item = candidate.library?[index] else { throw LocalItemsError.notFound }
+        guard item.kind == .task || item.kind == .shopping else { throw LocalItemsError.notSupported }
+        candidate.library?[index].isCompleted.toggle()
+        try commit(candidate)
+    }
+
+    func updateExternalCalendarID(id: UUID, value: String) throws {
+        var candidate = snapshot
+        guard let index = candidate.library?.firstIndex(where: { $0.id == id }),
+              candidate.library?[index].kind == .calendar else { throw LocalItemsError.notFound }
+        guard !value.isEmpty else { throw LocalItemsError.invalidText }
+        candidate.library?[index].externalCalendarID = value
+        try commit(candidate)
+    }
+
+    func mergeBackup(data: Data) throws {
+        guard !data.isEmpty, data.count <= 10 * 1_024 * 1_024 else {
+            throw LocalItemsError.invalidBackup("حجم الملف غير صالح؛ الحد الأقصى 10 MB.")
+        }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let incoming: LocalItemsSnapshot
+        do { incoming = try decoder.decode(LocalItemsSnapshot.self, from: data) }
+        catch {
+            do { incoming = try JSONDecoder().decode(LocalItemsSnapshot.self, from: data) }
+            catch { throw LocalItemsError.invalidBackup(error.localizedDescription) }
+        }
+        try commit(snapshot.merging(incoming)) // import never schedules notifications or calls EventKit
     }
 
     // MARK: Expenses
@@ -53,11 +168,34 @@ final class LocalItemsModel {
                     category: ExpenseCategory, sourceCaptureID: UUID?, sourceTranscript: String?) throws {
         let cleanTitle = try validatedTitle(title)
         guard let minor = parseAmount(amountText) else { throw LocalItemsError.invalidAmount }
+        guard date.timeIntervalSinceReferenceDate.isFinite else { throw LocalItemsError.invalidText }
         var candidate = snapshot
         candidate.expenses.append(ExpenseItem(date: date, title: cleanTitle, amountMinorUnits: minor,
                                               currency: currency, category: category,
                                               sourceCaptureID: sourceCaptureID,
                                               sourceTranscript: sourceTranscript))
+        try commit(candidate)
+    }
+
+    func upsertExpense(_ proposed: ExpenseItem) throws {
+        var item = proposed
+        item.title = try validatedTitle(item.title)
+        guard item.amountMinorUnits > 0 else { throw LocalItemsError.invalidAmount }
+        guard item.date.timeIntervalSinceReferenceDate.isFinite else { throw LocalItemsError.invalidText }
+        var candidate = snapshot
+        if let index = candidate.expenses.firstIndex(where: { $0.id == item.id }) {
+            let existing = candidate.expenses[index]
+            item.sourceCaptureID = existing.sourceCaptureID
+            item.sourceTranscript = existing.sourceTranscript
+            candidate.expenses[index] = item
+        } else { candidate.expenses.append(item) }
+        try commit(candidate)
+    }
+
+    func deleteExpense(id: UUID) throws {
+        guard snapshot.expenses.contains(where: { $0.id == id }) else { throw LocalItemsError.notFound }
+        var candidate = snapshot
+        candidate.expenses.removeAll { $0.id == id }
         try commit(candidate)
     }
 
@@ -81,18 +219,39 @@ final class LocalItemsModel {
     /// so a retry replaces the existing request instead of duplicating it.
     @discardableResult
     func schedule(id: UUID) async throws -> ReminderItem {
+        try await schedule(id: id, requestPermission: true)
+    }
+
+    @discardableResult
+    private func schedule(id: UUID, requestPermission: Bool) async throws -> ReminderItem {
         guard let item = reminder(id), item.status != .completed else { throw LocalItemsError.notFound }
         if item.scheduledDate <= Date() { return try update(id, .failed, "الموعد مرّ") }
+        if item.automaticSchedulingEligible != true {
+            var candidate = snapshot
+            if let index = candidate.reminders.firstIndex(where: { $0.id == id }) {
+                candidate.reminders[index].automaticSchedulingEligible = true
+            }
+            try commit(candidate)
+        }
 
         let center = UNUserNotificationCenter.current()
         var settings = await center.notificationSettings()
-        if settings.authorizationStatus == .notDetermined {
+        var current = try currentReminderOrCancel(id)
+        if current.status == .completed { return current }
+        if settings.authorizationStatus == .notDetermined && requestPermission {
             do { _ = try await center.requestAuthorization(options: [.alert, .sound]) }
-            catch { return try update(id, .failed, error.localizedDescription) }
+            catch {
+                current = try currentReminderOrCancel(id)
+                if current.status == .completed { return current }
+                return try update(id, .failed, error.localizedDescription)
+            }
+            current = try currentReminderOrCancel(id)
+            if current.status == .completed { return current }
             settings = await center.notificationSettings()
         }
         // State and time may have changed while the permission prompt was showing.
-        guard let current = reminder(id), current.status != .completed else { throw LocalItemsError.notFound }
+        current = try currentReminderOrCancel(id)
+        if current.status == .completed { return current }
         if current.scheduledDate <= Date() { return try update(id, .failed, "الموعد مرّ") }
 
         switch settings.authorizationStatus {
@@ -111,14 +270,13 @@ final class LocalItemsModel {
         let request = UNNotificationRequest(identifier: id.uuidString, content: content,
                                             trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false))
         do { try await center.add(request) } catch {
-            if let latest = reminder(id), latest.status == .completed { return latest }
+            let latest = try currentReminderOrCancel(id)
+            if latest.status == .completed { return latest }
             return try update(id, .failed, error.localizedDescription)
         }
-        // Completion can occur while add() is suspended. Do not revive a completed reminder.
-        if let latest = reminder(id), latest.status == .completed {
-            center.removePendingNotificationRequests(withIdentifiers: [id.uuidString])
-            return latest
-        }
+        // Completion or undo can happen while add() is suspended; remove the late native request.
+        let latest = try currentReminderOrCancel(id)
+        if latest.status == .completed { return latest }
         do { return try update(id, .scheduled, nil) } catch {
             // The native request exists but local state is not saved; keep the ID (still saved
             // as pending/failed) so reconcile or retry replaces it without duplicating.
@@ -129,28 +287,36 @@ final class LocalItemsModel {
     /// Marks completed (also cancels). Pending notification is removed after local state is saved.
     func complete(id: UUID) async throws {
         try update(id, .completed, nil)
-        let center = UNUserNotificationCenter.current()
-        center.removePendingNotificationRequests(withIdentifiers: [id.uuidString])
-        center.removeDeliveredNotifications(withIdentifiers: [id.uuidString])
+        removeNotifications([id])
     }
 
     /// Call at startup: removes requests of completed reminders and marks reminders whose
     /// request already exists natively as scheduled.
     func reconcile() async {
-        guard storageError == nil else { return }
+        guard storageError == nil, !isReconciling else { return }
+        isReconciling = true
+        defer { isReconciling = false }
         let center = UNUserNotificationCenter.current()
         let queriedSnapshot = snapshot
         let pending = Set(await center.pendingNotificationRequests().map(\.identifier))
+        let delivered = Set(await center.deliveredNotifications().map { $0.request.identifier })
         // A save/schedule can finish during the native query; leave newer state for the next refresh.
         guard snapshot == queriedSnapshot else { return }
-        let completed = snapshot.reminders.filter { $0.status == .completed }.map { $0.id.uuidString }
-        center.removePendingNotificationRequests(withIdentifiers: completed)
+        let liveIDs = Set(snapshot.reminders.filter {
+            $0.status != .completed && $0.automaticSchedulingEligible != false
+        }.map { $0.id.uuidString })
+        // All app notification requests currently use reminder UUIDs. This also recovers a crash
+        // after local undo committed but before native cancellation ran.
+        let stale = pending.union(delivered).filter { UUID(uuidString: $0) != nil && !liveIDs.contains($0) }
+        center.removePendingNotificationRequests(withIdentifiers: Array(stale))
+        center.removeDeliveredNotifications(withIdentifiers: Array(stale))
 
         var candidate = snapshot
         var changed = false
         for i in candidate.reminders.indices {
             let r = candidate.reminders[i]
-            if r.status != .completed, r.status != .scheduled, pending.contains(r.id.uuidString) {
+            if r.status != .completed, r.status != .scheduled, r.automaticSchedulingEligible != false,
+               pending.contains(r.id.uuidString) {
                 candidate.reminders[i].status = .scheduled
                 candidate.reminders[i].scheduleError = nil
                 changed = true
@@ -161,8 +327,46 @@ final class LocalItemsModel {
                 changed = true
             }
         }
-        guard changed else { return }
-        do { try commit(candidate); saveError = nil } catch { saveError = error.localizedDescription }
+        if changed {
+            do { try commit(candidate) } catch { saveError = error.localizedDescription; return }
+        }
+        let settings = await center.notificationSettings()
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral: break
+        default: return
+        }
+        let recover = snapshot.reminders.filter {
+            $0.status == .pending && $0.automaticSchedulingEligible == true && $0.scheduledDate > Date()
+        }.map(\.id)
+        for id in recover {
+            guard let current = reminder(id), current.status == .pending,
+                  current.automaticSchedulingEligible == true else { continue }
+            do { _ = try await schedule(id: id, requestPermission: false) }
+            catch {
+                if let latest = reminder(id), latest.status != .completed { saveError = error.localizedDescription }
+            }
+        }
+    }
+
+    private func removeNotifications(_ ids: [UUID]) {
+        let identifiers = ids.map(\.uuidString)
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+        center.removeDeliveredNotifications(withIdentifiers: identifiers)
+    }
+
+    /// Checks after every native suspension. Removed rows (undo) and completed rows cannot revive.
+    private func currentReminderOrCancel(_ id: UUID) throws -> ReminderItem {
+        guard let item = reminder(id) else {
+            removeNotifications([id])
+            throw LocalItemsError.notFound
+        }
+        guard item.automaticSchedulingEligible == true else {
+            removeNotifications([id])
+            throw LocalItemsError.notFound
+        }
+        if item.status == .completed { removeNotifications([id]) }
+        return item
     }
 
     @discardableResult

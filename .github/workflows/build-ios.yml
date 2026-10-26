@@ -10,6 +10,8 @@ on:
       - 'MixCapture.xcodeproj/**'
       - 'Tests/**'
       - 'scripts/build-unsigned.sh'
+      - 'scripts/test-ui.sh'
+      - 'scripts/make-icon.swift'
       - '.github/workflows/build-ios.yml'
 
 permissions:
@@ -18,7 +20,7 @@ permissions:
 jobs:
   build:
     runs-on: macos-26
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - name: Check models and build unsigned device app
@@ -33,6 +35,8 @@ jobs:
             build/build-info.txt
           if-no-files-found: error
           retention-days: 14
+      - name: Run native iPhone simulator UI tests
+        run: bash scripts/test-ui.sh
       - name: Upload build diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -42,7 +46,33 @@ jobs:
             build/build-info.txt
             build/model-checks.log
             build/items-checks.log
+            build/organizer-checks.log
+            build/organizer-adversarial-checks.log
             build/whisper-smoke.log
             build/xcodebuild.log
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Package UI test result bundle
+        if: always()
+        run: |
+          if [ -d build/UIResults.xcresult ]; then
+            ditto -c -k --keepParent build/UIResults.xcresult build/UIResults.xcresult.zip
+          fi
+      - name: Upload UI test screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-screenshots
+          path: build/ui-screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Upload UI test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-diagnostics
+          path: |
+            build/ui-tests.log
+            build/UIResults.xcresult.zip
           if-no-files-found: warn
           retention-days: 14

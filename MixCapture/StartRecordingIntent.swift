@@ -14,6 +14,18 @@ struct StartRecordingIntent: AppIntent {
     }
 }
 
+/// Back Tap can use this one action for both ends of a short capture.
+struct ToggleRecordingIntent: AppIntent {
+    static let title: LocalizedStringResource = "Toggle Recording"
+    static let openAppWhenRun: Bool = true
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        CaptureModel.shared.toggleRecording()
+        return .result()
+    }
+}
+
 /// Makes the intent discoverable in the Shortcuts app without user setup,
 /// so it can be picked for Settings › Accessibility › Touch › Back Tap.
 struct MixCaptureShortcuts: AppShortcutsProvider {
@@ -26,6 +38,12 @@ struct MixCaptureShortcuts: AppShortcutsProvider {
             ],
             shortTitle: "Start Recording",
             systemImageName: "mic.circle.fill"
+        )
+        AppShortcut(
+            intent: ToggleRecordingIntent(),
+            phrases: ["Toggle recording in \(.applicationName)"],
+            shortTitle: "Toggle Recording",
+            systemImageName: "record.circle"
         )
     }
 }
