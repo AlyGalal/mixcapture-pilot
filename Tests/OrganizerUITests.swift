@@ -19,7 +19,7 @@ final class OrganizerUITests: XCTestCase {
     private func launch(dark: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["--ui-testing", "-AppleLanguages", "(ar)", "-AppleLocale", "ar_EG"]
-        if dark { app.launchArguments += ["-AppleInterfaceStyle", "Dark"] }
+        if dark { app.launchArguments += ["--ui-dark"] }
         app.launch()
         return app
     }
@@ -75,7 +75,7 @@ final class OrganizerUITests: XCTestCase {
 
     private func openRecipe(_ app: XCUIApplication) {
         selectFilter(app, id: "library.filter.recipe")
-        let recipe = element(app, labelContaining: recipeTitle)
+        let recipe = app.buttons["افتح \(recipeTitle)"]
         require(recipe, "recipe row «\(recipeTitle)»")
         recipe.tap()
     }
@@ -137,7 +137,12 @@ final class OrganizerUITests: XCTestCase {
         screenshot(app, "06-review")
         draft.tap()
         let reviewSave = require(element(app, id: "review.save"), "review.save in review editor")
-        XCTAssertFalse(reviewSave.isEnabled, "Ambiguous reminder cannot save without an explicit date")
+        let validation = require(element(app, id: "review.validation"), "missing-date validation")
+        XCTAssertTrue(validation.label.contains("اختر موعد"), "Review must require an explicit reminder date")
+        // iOS 26 represents a disabled toolbar item as Other with isEnabled=true.
+        // A physical tap must still leave the invalid draft in its editor.
+        reviewSave.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        require(element(app, id: "review.validation"), "invalid review remains unsaved")
         screenshot(app, "06b-review-editor")
     }
 
@@ -156,7 +161,7 @@ final class OrganizerUITests: XCTestCase {
         waitForHome(app)
         openTab(app, id: "tab.library", index: 1)
         selectFilter(app, id: "library.filter.task")
-        require(element(app, labelContaining: "مراجعة ميزانية مشروع Home"), "fixture task").tap()
+        require(app.buttons["افتح مراجعة ميزانية مشروع Home"], "open fixture task").tap()
         require(element(app, id: "library.toggle"), "complete task").tap()
         XCTAssertTrue(element(app, id: "library.toggle").label.contains("إلغاء"), "Task did not complete")
         app.terminate()
@@ -164,7 +169,7 @@ final class OrganizerUITests: XCTestCase {
         waitForHome(app)
         openTab(app, id: "tab.library", index: 1)
         selectFilter(app, id: "library.filter.task")
-        require(element(app, labelContaining: "مراجعة ميزانية مشروع Home"), "saved task").tap()
+        require(app.buttons["افتح مراجعة ميزانية مشروع Home"], "open saved task").tap()
         let toggle = require(element(app, id: "library.toggle"), "saved completed task")
         XCTAssertTrue(toggle.label.contains("إلغاء"), "Task completion was not persisted")
         screenshot(app, "14-completed-task")

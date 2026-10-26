@@ -155,6 +155,17 @@ struct OrganizerChecks {
         check(!outbox.needsCalendarPublication(at: now), "imported event never enters a later sync")
         outbox.calendarSyncEligible = true
         check(!outbox.needsCalendarPublication(at: now.addingTimeInterval(1800)), "past local event is not published later")
+        outbox.sourceCaptureID = source; outbox.externalCalendarID = "pending:first"
+        var secondEvent = outbox
+        secondEvent.id = UUID(); secondEvent.externalCalendarID = "native-second"
+        var foreignEvent = outbox
+        foreignEvent.id = UUID(); foreignEvent.sourceCaptureID = otherSource
+        var calendarSnapshot = LocalItemsSnapshot()
+        calendarSnapshot.library = [outbox, secondEvent, foreignEvent]
+        let preparedUndo = calendarSnapshot.preparingCalendarUndo(sourceID: source)
+        check(preparedUndo.library?.prefix(2).allSatisfy({ $0.externalCalendarID?.hasPrefix("undo:") == true }) == true &&
+              preparedUndo.library?.last == foreignEvent && calendarSnapshot.library?.first == outbox,
+              "one pure candidate marks every owned event for undo and leaves unrelated events untouched")
         check(try merged.merging(incoming) == merged, "reimporting the same backup is idempotent")
         incoming.expenses.append(ExpenseItem(date: now, title: "Invalid", amountMinorUnits: 0,
                                              currency: .EGP, category: .other, sourceCaptureID: nil, sourceTranscript: nil))

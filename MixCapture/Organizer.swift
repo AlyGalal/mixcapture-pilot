@@ -1032,6 +1032,16 @@ extension LocalItemsSnapshot {
     }
 
     /// Removes everything linked to the source and keeps its receipt as `.undone`.
+    func preparingCalendarUndo(sourceID: UUID) -> LocalItemsSnapshot {
+        var next = self
+        for index in (next.library ?? []).indices {
+            guard let item = next.library?[index], item.kind == .calendar, item.sourceCaptureID == sourceID,
+                  let id = item.externalCalendarID, !id.hasPrefix("undo:") else { continue }
+            next.library?[index].externalCalendarID = "undo:\(id)"
+        }
+        return next
+    }
+
     func undoingOrganization(sourceID: UUID) throws -> (snapshot: LocalItemsSnapshot, removedReminderIDs: [UUID]) {
         guard var receipts = organizationReceipts, let index = receipts.firstIndex(where: { $0.id == sourceID }) else {
             throw LocalItemsError.notFound

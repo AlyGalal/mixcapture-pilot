@@ -1106,6 +1106,8 @@ struct LibraryScreen: View {
             } label: {
                 LibraryRowText(item: item)
             }
+            .accessibilityLabel("افتح \(item.title)")
+            .accessibilityIdentifier("library.open.\(item.id.uuidString)")
         }
     }
 }
@@ -1571,7 +1573,7 @@ struct ReviewEditor: View {
                 }
             }
             if let message = validation {
-                Section { Text(message).font(.footnote).foregroundStyle(.secondary) }
+                Section { Text(message).font(.footnote).foregroundStyle(.secondary).accessibilityIdentifier("review.validation") }
             }
             if let error {
                 Section { Text(error).foregroundStyle(.red).textSelection(.enabled) }

@@ -5,9 +5,19 @@ struct MixCaptureApp: App {
     @State private var model = CaptureModel.shared
     @Environment(\.scenePhase) private var scenePhase
 
+    private var simulatorAppearance: ColorScheme? {
+        #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("--ui-testing") {
+            return ProcessInfo.processInfo.arguments.contains("--ui-dark") ? .dark : .light
+        }
+        #endif
+        return nil
+    }
+
     var body: some Scene {
         WindowGroup {
             OrganizerShell(model: model)
+                .preferredColorScheme(simulatorAppearance)
                 .environment(\.layoutDirection, .rightToLeft)
                 .task { await SimulatorFixtures.installIfRequested() }
                 .onOpenURL { url in

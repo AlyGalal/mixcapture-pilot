@@ -97,6 +97,10 @@ final class LocalItemsModel {
         removeNotifications(result.removedReminderIDs)
     }
 
+    func prepareCalendarUndo(sourceID: UUID) throws {
+        try commit(snapshot.preparingCalendarUndo(sourceID: sourceID))
+    }
+
     func upsertLibrary(_ proposed: OrganizerItem) throws {
         var item = proposed
         var candidate = snapshot

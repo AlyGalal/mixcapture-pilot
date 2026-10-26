@@ -92,13 +92,8 @@ final class CalendarBridge {
             guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else {
                 throw BridgeError(message: "أعد السماح بالوصول للتقويم قبل التراجع عن مواعيده.")
             }
-        }
-        // A crash after external removal must not let a pending outbox recreate the event.
-        // Persist undo intent first; the visible receipt remains retryable until local undo commits.
-        for item in owned {
-            if let identifier = item.externalCalendarID, !identifier.hasPrefix("undo:") {
-                try model.updateExternalCalendarID(id: item.id, value: "undo:\(identifier)")
-            }
+            // Mark every event in one local commit before removing any external event.
+            try model.prepareCalendarUndo(sourceID: sourceID)
         }
         for item in owned where item.externalCalendarID != nil {
             guard EKEventStore.authorizationStatus(for: .event) == .fullAccess else { continue }
