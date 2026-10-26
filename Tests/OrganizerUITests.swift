@@ -89,9 +89,7 @@ final class OrganizerUITests: XCTestCase {
 
     private func selectFilter(_ app: XCUIApplication, id: String) {
         let chip = require(element(app, id: id), "filter \(id)")
-        let filters = require(element(app, id: "library.filters"), "filter strip")
-        for _ in 0..<3 where !chip.isHittable { filters.swipeRight() }
-        for _ in 0..<3 where !chip.isHittable { filters.swipeLeft() }
+        // The adaptive grid keeps every category visible without horizontal scrolling.
         XCTAssertTrue(chip.isHittable, "Filter cannot be reached: \(id)")
         chip.tap()
     }
@@ -106,6 +104,10 @@ final class OrganizerUITests: XCTestCase {
 
         openTab(app, id: "tab.library", index: 1)
         require(element(app, id: "library.add"), "library.add on library")
+        for kind in ["all", "note", "task", "shopping", "recipe", "calendar"] {
+            XCTAssertTrue(require(element(app, id: "library.filter.\(kind)"), "visible \(kind) filter").isHittable,
+                          "Library category must be visible without scrolling: \(kind)")
+        }
         require(app.cells.firstMatch, "seeded library rows")
         screenshot(app, "02-library")
 

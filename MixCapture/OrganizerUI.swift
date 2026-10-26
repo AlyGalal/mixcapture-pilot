@@ -1021,21 +1021,26 @@ struct LibraryScreen: View {
     }
 
     private var chips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                chip(title: "All", symbol: "square.grid.2x2", selected: kindFilter == nil, id: "library.filter.all") {
-                    kindFilter = nil
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 110), spacing: 8)], spacing: 8) {
+            chip(title: "All", symbol: "square.grid.2x2", selected: kindFilter == nil, id: "library.filter.all") {
+                kindFilter = nil
+            }
+            ForEach(OrganizerKind.allCases) { kind in
+                let title = switch kind {
+                case .note: "Notes"
+                case .task: "Tasks"
+                case .shopping: "Shopping"
+                case .recipe: "Recipes"
+                case .calendar: "Events"
                 }
-                ForEach(OrganizerKind.allCases) { kind in
-                    chip(title: kind.label, symbol: kind.uiSymbol, selected: kindFilter == kind,
-                         id: "library.filter.\(kind.rawValue)") {
-                        kindFilter = (kindFilter == kind) ? nil : kind
-                    }
+                chip(title: title, symbol: kind.uiSymbol, selected: kindFilter == kind,
+                     id: "library.filter.\(kind.rawValue)") {
+                    kindFilter = (kindFilter == kind) ? nil : kind
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
         .accessibilityIdentifier("library.filters")
     }
 
@@ -1045,7 +1050,7 @@ struct LibraryScreen: View {
                 .font(.subheadline.weight(.medium))
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
-                .frame(minHeight: 44)
+                .frame(maxWidth: .infinity, minHeight: 44)
                 .background(selected ? Theme.teal : Theme.card, in: Capsule())
                 .overlay(Capsule().stroke(Theme.hairline))
                 .foregroundStyle(selected ? Theme.onTeal : Theme.ink)
