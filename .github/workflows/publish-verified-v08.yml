@@ -62,3 +62,34 @@ jobs:
           gh release create pilot-v0.8.0 --target "$source" --title 'MixCapture build 8 — spoken shopping requests' --notes-file release-notes.txt --prerelease --draft
           gh release upload pilot-v0.8.0 MixCapture-Build8.ipa SHA256SUMS.txt build-info.txt Daily-life-100-Build8.html Daily-life-100-results-Build8.json
           gh release edit pilot-v0.8.0 --draft=false
+      - name: Make a small exact binary delta for the existing Build 7 package
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download 40389469835 --name mixcapture-unsigned --dir base
+          mkdir -p next delta
+          cp artifact/MixCapture-Build8.ipa next/MixCapture-unsigned.ipa
+          python3 - <<'PYCODE'
+          import hashlib, json
+          from pathlib import Path
+          def sha(p):
+              with open(p,'rb') as f: return hashlib.file_digest(f,'sha256').hexdigest()
+          base=sha('base/MixCapture-unsigned.ipa')
+          assert base=='690c57640e435cb71b6f03f03d4ae6d4817a20e8a03dc8b6019e1adb226881c1'
+          data={'base_sha256':base,'target_sha256':sha('next/MixCapture-unsigned.ipa'),'source':'5e779acdf852852719c2af0c52630195a24dcac8','build':8}
+          Path('delta/delta.json').write_text(json.dumps(data,indent=2)+'\n')
+          PYCODE
+          set +e
+          git -c core.bigFileThreshold=2g diff --no-index --binary --full-index --src-prefix=a/ --dst-prefix=b/ base/MixCapture-unsigned.ipa next/MixCapture-unsigned.ipa > delta/Build8.patch
+          diff_status=$?
+          set -e
+          test "$diff_status" = 1
+          test "$(wc -c < delta/Build8.patch)" -lt 33554432
+          grep -q '^GIT binary patch' delta/Build8.patch
+          gh release upload pilot-v0.8.0 delta/Build8.patch delta/delta.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build8-exact-delta
+          path: delta/
+          if-no-files-found: error
+          retention-days: 14
