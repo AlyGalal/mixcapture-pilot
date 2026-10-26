@@ -1,0 +1,64 @@
+name: Publish verified experimental build 8
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Verify complete checks and publish exact artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          source='5e779acdf852852719c2af0c52630195a24dcac8'
+          for run in 40400929087 40400930128; do
+            test "$(gh run view "$run" --json conclusion --jq '.conclusion')" = 'success'
+            test "$(gh run view "$run" --json headSha --jq '.headSha')" = "$source"
+          done
+          gh run download 40400929087 --name mixcapture-unsigned --dir artifact
+          gh run download 40400930128 --name daily-scenario-audit --dir audit
+          cd artifact
+          sed 's@build/@@' SHA256SUMS.txt | sha256sum -c -
+          python3 - <<'PYCODE'
+          import zipfile, plistlib, hashlib, json
+          with zipfile.ZipFile('MixCapture-unsigned.ipa') as z:
+              names=z.namelist()
+              info=plistlib.loads(z.read('Payload/MixCapture.app/Info.plist'))
+              assert info['CFBundleVersion']=='8'
+              assert info['CFBundleIdentifier']=='com.mixcapture.pilot'
+              assert info['CFBundleDevelopmentRegion']=='en'
+              assert info['CFBundleSupportedPlatforms']==['iPhoneOS']
+              assert not any(n.lower().endswith(('.wav','.m4a','.mp3','.aac')) for n in names)
+              assert len([n for n in names if n.endswith('.bin')])==1
+              with z.open('Payload/MixCapture.app/ggml-codeswitch-medium-q8_0.bin') as f:
+                  assert hashlib.file_digest(f,'sha256').hexdigest()=='42ad913750c5487f8fb7bb9d45033fc06443d59d387c797b02632f639d46fbdd'
+          with open('../audit/results.json') as f:
+              report=json.load(f)
+          assert report['schema_version']==2 and len(report['cases'])==100
+          assert all(not case['executed_actions'] for case in report['cases'])
+          assert sum(report['summary'].values())==100
+          print('Verified build 8, unchanged pinned model, no packaged audio, and synthetic audit.')
+          PYCODE
+          cp ../audit/report.html Daily-life-100-Build8.html
+          cp ../audit/results.json Daily-life-100-results-Build8.json
+          cat > release-notes.txt <<'NOTES'
+          Build 8 fixes spoken shopping requests that end with sentence punctuation, such as an unnamed shopping-list destination followed by a full stop. Arabic/English list rules preserve original transcripts and meaningful collection-name symbols. Questions followed by punctuation remain in Review. The speech model is unchanged.
+
+          The new regression checks reproduced the previous failure, then verified Shopping parsing, storing, and reloading with the untouched source. 49 synthetic shopping inputs plus persisted-state checks and 70 adversarial source cases pass. The unchanged 100-scenario audit still documents remaining capability/interpretation gaps rather than claiming universal support.
+
+          Existing saved items retain their classification until explicitly edited; test the fix with a new recording. Update the same app using the same signing account, without deleting it, then verify 1.0 (build 8) in Settings. Installer success alone is not version proof. No personal recordings or transcripts are included in this release.
+          NOTES
+          mv MixCapture-unsigned.ipa MixCapture-Build8.ipa
+          sha256sum MixCapture-Build8.ipa > SHA256SUMS.txt
+          gh release create pilot-v0.8.0 --target "$source" --title 'MixCapture build 8 — spoken shopping requests' --notes-file release-notes.txt --prerelease --draft
+          gh release upload pilot-v0.8.0 MixCapture-Build8.ipa SHA256SUMS.txt build-info.txt Daily-life-100-Build8.html Daily-life-100-results-Build8.json
+          gh release edit pilot-v0.8.0 --draft=false
