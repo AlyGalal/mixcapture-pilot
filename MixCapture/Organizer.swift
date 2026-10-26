@@ -149,7 +149,7 @@ enum OrganizerParser {
             return [parser.review(.note, doc, text, "سؤال أو احتمال؛ لم يُنفَّذ كأمر.")]
         }
         if let recipe = parser.recipe(doc, text) { return [recipe] }
-        if doc.has(Rx.negation) {
+        if doc.has(Rx.negation) || doc.has(#"\?\s*$"#) {
             return [parser.review(parser.classify(doc)?.kind ?? .note, doc, text,
                                   "فيها نفي أو تصحيح؛ راجع المصدر كاملًا.")]
         }
@@ -506,6 +506,7 @@ private struct PhraseParser {
     }
 
     func expense(_ d: Doc, _ head: NSRange, _ body: String) -> OrganizationDraft {
+        let leading = d.sub(from: 0, to: head.location).key
         let found = amounts(d)
         let rest = d.removing([head] + found.map { $0.range }).stripped(Rx.expenseLead, trailing: Rx.expenseTrail)
         var out = make(.expense, rest.text.isEmpty ? OrganizationKind.expense.label : rest.text, body)
@@ -515,7 +516,13 @@ private struct PhraseParser {
             out.currency = found[0].currency
         }
         var reason: String?
-        if d.has(Rx.pastDay) || d.has(Rx.weekday) || d.has(Rx.slashDate) || d.has(Rx.day) ||
+        switch moment(d).found {
+        case .absent: break
+        default: reason = "وقت المصروف مذكور بشكل منفصل؛ راجع تاريخه ووقته."
+        }
+        if !leading.isEmpty && !["انا", "please"].contains(leading) {
+            reason = "المصروف مذكور ضمن كلام آخر؛ أكد أنه مصروفك قبل الحفظ."
+        } else if d.has(Rx.pastDay) || d.has(Rx.weekday) || d.has(Rx.slashDate) || d.has(Rx.day) ||
             d.has(Rx.unsupportedDate) || d.has(Rx.word(#"last\s+(?:month|week|year)|الشهر\s+(?:اللي\s+فات|الماضي)|الاسبوع\s+(?:اللي\s+فات|الماضي)|يوم\s+\d+"#)) {
             reason = "تاريخ المصروف ليس وقت التسجيل؛ راجع التاريخ."
         } else if d.has(Rx.word(#"minus|negative|سالب|ناقص|ولا|او|or|either|بدل|instead|actually|اقصد|قصدي|plus|زائد|ضرب|خصم|discount|refund|cashback|استرداد"#)) ||
