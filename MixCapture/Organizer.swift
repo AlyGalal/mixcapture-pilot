@@ -210,7 +210,7 @@ private struct Doc {
         case 0x61B: mapped = 0x3B
         case 0x61F: mapped = 0x3F
         case 0x2018, 0x2019: mapped = 0x27
-        case 0x2212: mapped = 0x2D
+        case 0x2010...0x2015, 0x2212: mapped = 0x2D
         case 0x622, 0x623, 0x625, 0x671: mapped = 0x627
         case 0x649, 0x6CC: mapped = 0x64A
         case 0x629: mapped = 0x647
@@ -518,7 +518,8 @@ private struct PhraseParser {
         if d.has(Rx.pastDay) || d.has(Rx.weekday) || d.has(Rx.slashDate) || d.has(Rx.day) ||
             d.has(Rx.unsupportedDate) || d.has(Rx.word(#"last\s+(?:month|week|year)|الشهر\s+(?:اللي\s+فات|الماضي)|الاسبوع\s+(?:اللي\s+فات|الماضي)|يوم\s+\d+"#)) {
             reason = "تاريخ المصروف ليس وقت التسجيل؛ راجع التاريخ."
-        } else if d.has(Rx.word(#"minus|negative|سالب|ناقص|ولا|او|or|either|بدل|instead|actually|اقصد|قصدي"#)) {
+        } else if d.has(Rx.word(#"minus|negative|سالب|ناقص|ولا|او|or|either|بدل|instead|actually|اقصد|قصدي|plus|زائد|ضرب|خصم|discount|refund|cashback|استرداد"#)) ||
+                    d.has(#"\d\s*[+*/×=]\s*\d"#) {
             reason = "المبلغ فيه نفي أو بدائل أو تصحيح؛ راجعه يدويًا."
         } else if found.isEmpty {
             reason = d.has(Rx.currencyWord) ? "المبلغ غير واضح." : "العملة غير مذكورة؛ لن نفترضها."
@@ -838,14 +839,29 @@ private struct PhraseParser {
 
     func wordsValue(_ phrase: String) -> Int64? {
         let ns = phrase as NSString
+        let tokens = regex(Rx.numberWord).matches(in: phrase, range: NSRange(location: 0, length: ns.length))
+            .map { ns.substring(with: $0.range) }
+        guard tokens.filter({ Rx.hundreds.contains($0) }).count <= 1,
+              tokens.filter({ Rx.thousands.contains($0) }).count <= 1 else { return nil }
+        for pair in zip(tokens, tokens.dropFirst()) {
+            guard let a = Rx.numbers[pair.0], let b = Rx.numbers[pair.1] else { continue }
+            let english = pair.0.unicodeScalars.first!.value < 128 && pair.1.unicodeScalars.first!.value < 128
+            let arabic = pair.0.unicodeScalars.first!.value >= 128 && pair.1.unicodeScalars.first!.value >= 128
+            let tens = (20...90).contains(a) && a % 10 == 0 && (1...9).contains(b) && english
+            let arabicTens = (1...9).contains(a) && (20...90).contains(b) && b % 10 == 0 && arabic
+            let hundreds = a >= 100 && a % 100 == 0 && b < 100
+            guard tens || arabicTens || hundreds else { return nil }
+        }
         var total: Int64 = 0, current: Int64 = 0
         for m in regex(Rx.numberWord).matches(in: phrase, range: NSRange(location: 0, length: ns.length)) {
             let t = ns.substring(with: m.range)
             if Rx.hundreds.contains(t) {
+                guard current <= 9 else { return nil }
                 let product = max(current, 1).multipliedReportingOverflow(by: 100)
                 guard !product.overflow else { return nil }
                 current = product.partialValue
             } else if Rx.thousands.contains(t) {
+                guard current <= 999 else { return nil }
                 let product = max(current, 1).multipliedReportingOverflow(by: 1000)
                 let sum = total.addingReportingOverflow(product.partialValue)
                 guard !product.overflow, !sum.overflow else { return nil }

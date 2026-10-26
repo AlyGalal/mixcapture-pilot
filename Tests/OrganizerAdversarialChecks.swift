@@ -56,6 +56,8 @@ struct OrganizerAdversarialChecks {
         automatic("دفعت ١٢٠٫٥٠ جنيه في Uber", kind: .expense, amount: 12050)
         automatic("paid 120.50 EGP for Uber", kind: .expense, amount: 12050)
         automatic("سجل مصروف خمسين جنيه قهوة", kind: .expense, amount: 5000)
+        automatic("دفعت مية وخمسين جنيه في Uber", kind: .expense, amount: 15000)
+        automatic("paid one hundred twenty five EGP for Uber", kind: .expense, amount: 12500)
         automatic("ضيف مهمة review budget لمشروع Home", kind: .task, collection: "Home")
         automatic("ملاحظة لمشروع Home: راجع API v2 مع أحمد", kind: .note, collection: "Home")
 
@@ -83,7 +85,13 @@ struct OrganizerAdversarialChecks {
             "حط اجتماع design meeting بكرة الساعة 3 PM",
             "paid -50 EGP for coffee",
             "paid −50 EGP for coffee",
+            "paid –50 EGP for coffee",
+            "paid 50+20 EGP for coffee",
+            "دفعت عشرين زائد خمسين جنيه",
             "paid minus 50 EGP for coffee",
+            "paid five fifty EGP for coffee",
+            "paid fifty fifty EGP for coffee",
+            "paid one hundred one hundred EGP for coffee",
             "هل دفعت 50 جنيه في Uber؟",
             "if I paid 50 EGP for coffee",
             "دفعت 50 ولا 120 جنيه في Uber",

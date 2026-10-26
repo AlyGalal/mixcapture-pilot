@@ -688,6 +688,7 @@ struct CommandSheet: View {
     @State private var busy = false
     @State private var error: String?
     @State private var receipt: OrganizationReceipt?
+    @FocusState private var editingCommand: Bool
 
     private var canSubmit: Bool {
         !busy && items.storageError == nil && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -699,6 +700,7 @@ struct CommandSheet: View {
                 VStack(alignment: .leading, spacing: 14) {
                     StorageBanner()
                     TextField("اكتب أمرك هنا…", text: $text, axis: .vertical)
+                        .focused($editingCommand)
                         .disabled(busy)
                         .lineLimit(3...8)
                         .padding(12)
@@ -744,6 +746,7 @@ struct CommandSheet: View {
     private func submit() {
         let command = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !command.isEmpty, !busy else { return }
+        editingCommand = false
         busy = true
         error = nil
         receipt = nil
@@ -1033,6 +1036,7 @@ struct LibraryScreen: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
         }
+        .accessibilityIdentifier("library.filters")
     }
 
     private func chip(title: String, symbol: String, selected: Bool, id: String, action: @escaping () -> Void) -> some View {

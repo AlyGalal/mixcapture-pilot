@@ -96,6 +96,9 @@ xcodebuild \
   -derivedDataPath build/UITestDerivedData \
   -resultBundlePath "$RESULT_BUNDLE" \
   -parallel-testing-enabled NO \
+  -test-timeouts-enabled YES \
+  -default-test-execution-time-allowance 180 \
+  -maximum-test-execution-time-allowance 240 \
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
   test 2>&1 | tee "$LOG"
 status=${PIPESTATUS[0]}

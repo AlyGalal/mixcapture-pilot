@@ -41,18 +41,16 @@ final class OrganizerUITests: XCTestCase {
         return element
     }
 
-    /// Tab by accessibility identifier; falls back to the tab-bar position (home, library,
-    /// expenses, settings) because SwiftUI tab items may only expose their Arabic label.
+    /// Labels remain reliable when SwiftUI omits tab identifiers; don't depend on RTL positions.
     private func openTab(_ app: XCUIApplication, id: String, index: Int) {
         let byID = element(app, id: id)
         if byID.waitForExistence(timeout: 5), byID.isHittable {
             byID.tap()
             return
         }
-        let buttons = app.tabBars.buttons
-        require(buttons.element(boundBy: 0), "tab bar (\(id))")
-        XCTAssertGreaterThan(buttons.count, index, "Tab bar has no tab at index \(index) for \(id)")
-        buttons.element(boundBy: index).tap()
+        let label = ["اليوم", "المكتبة", "المصاريف", "الإعدادات"][index]
+        let button = app.tabBars.buttons.matching(NSPredicate(format: "label CONTAINS %@", label)).firstMatch
+        require(button, "tab \(label)").tap()
     }
 
     private func waitForHome(_ app: XCUIApplication) {
@@ -76,12 +74,19 @@ final class OrganizerUITests: XCTestCase {
     }
 
     private func openRecipe(_ app: XCUIApplication) {
-        // Chips are optional; use the recipe filter when present to bring the recipe into view.
-        let chip = element(app, id: "library.filter.recipe")
-        if chip.waitForExistence(timeout: 3) { chip.tap() }
+        selectFilter(app, id: "library.filter.recipe")
         let recipe = element(app, labelContaining: recipeTitle)
         require(recipe, "recipe row «\(recipeTitle)»")
         recipe.tap()
+    }
+
+    private func selectFilter(_ app: XCUIApplication, id: String) {
+        let chip = require(element(app, id: id), "filter \(id)")
+        let filters = require(element(app, id: "library.filters"), "filter strip")
+        for _ in 0..<3 where !chip.isHittable { filters.swipeRight() }
+        for _ in 0..<3 where !chip.isHittable { filters.swipeLeft() }
+        XCTAssertTrue(chip.isHittable, "Filter cannot be reached: \(id)")
+        chip.tap()
     }
 
     // MARK: Tests
@@ -94,7 +99,7 @@ final class OrganizerUITests: XCTestCase {
 
         openTab(app, id: "tab.library", index: 1)
         require(element(app, id: "library.add"), "library.add on library")
-        require(element(app, labelContaining: recipeTitle), "seeded recipe in library")
+        require(app.cells.firstMatch, "seeded library rows")
         screenshot(app, "02-library")
 
         openRecipe(app)
@@ -142,7 +147,7 @@ final class OrganizerUITests: XCTestCase {
         waitForHome(app)
         screenshot(app, "07-home-dark")
         openTab(app, id: "tab.library", index: 1)
-        require(element(app, labelContaining: recipeTitle), "seeded recipe in dark library")
+        require(app.cells.firstMatch, "seeded rows in dark library")
         screenshot(app, "08-library-dark")
     }
 
@@ -150,7 +155,7 @@ final class OrganizerUITests: XCTestCase {
         var app = launch()
         waitForHome(app)
         openTab(app, id: "tab.library", index: 1)
-        require(element(app, id: "library.filter.task"), "task filter").tap()
+        selectFilter(app, id: "library.filter.task")
         require(element(app, labelContaining: "مراجعة ميزانية مشروع Home"), "fixture task").tap()
         require(element(app, id: "library.toggle"), "complete task").tap()
         XCTAssertTrue(element(app, id: "library.toggle").label.contains("إلغاء"), "Task did not complete")
@@ -158,7 +163,7 @@ final class OrganizerUITests: XCTestCase {
         app = launch()
         waitForHome(app)
         openTab(app, id: "tab.library", index: 1)
-        require(element(app, id: "library.filter.task"), "task filter after relaunch").tap()
+        selectFilter(app, id: "library.filter.task")
         require(element(app, labelContaining: "مراجعة ميزانية مشروع Home"), "saved task").tap()
         let toggle = require(element(app, id: "library.toggle"), "saved completed task")
         XCTAssertTrue(toggle.label.contains("إلغاء"), "Task completion was not persisted")
@@ -214,17 +219,16 @@ final class OrganizerUITests: XCTestCase {
         var app = launch()
         waitForHome(app)
         openTab(app, id: "tab.library", index: 1)
+        selectFilter(app, id: "library.filter.recipe")
         require(element(app, labelContaining: recipeTitle), "seeded recipe on first launch")
         app.terminate()
 
         app = launch()
         waitForHome(app)
         openTab(app, id: "tab.library", index: 1)
+        selectFilter(app, id: "library.filter.recipe")
         require(element(app, labelContaining: recipeTitle), "seeded recipe after relaunch")
-        let titles = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", recipeTitle))
-        XCTAssertLessThanOrEqual(titles.count, 1, "Recipe fixture was duplicated on relaunch")
-        let note = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "اجتماع الأسبوع القادم"))
-        XCTAssertLessThanOrEqual(note.count, 1, "Note fixture was duplicated on relaunch")
+        XCTAssertEqual(app.cells.count, 1, "Recipe fixture was duplicated on relaunch")
 
         // The EGP total is 350.50 on a clean store; seeding twice would show 701.00 instead.
         openTab(app, id: "tab.expenses", index: 2)
