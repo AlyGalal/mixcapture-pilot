@@ -1,0 +1,2072 @@
+{
+  "schema_version": 1,
+  "anchor": "2026-10-26T09:00:00+03:00",
+  "timezone": "Africa/Cairo",
+  "baseline_app": "MixCapture build 5",
+  "scope": "Desired everyday behavior; text-parser diagnostic only, not speech accuracy or implemented feature guarantees.",
+  "rules": [
+    "All examples are synthetic.",
+    "In clarify mode actions and executed_actions are empty; pending_actions are drafts only.",
+    "No dates, amounts, recipients, tasks, messages or notifications may be invented.",
+    "Shopping day is date-only planning, not an inferred notification time.",
+    "No external messages, payments, orders or publication are authorized.",
+    "Explicit requested idea expansion is a separate capability from storing a note; proposals stay separate from original words.",
+    "Per-case state is a desired input for future stateful handling, not provided to the current stateless parser."
+  ],
+  "cases": [
+    {
+      "id": "D001",
+      "domain": "shopping",
+      "language": "mixed",
+      "situation": "المستخدم بيجهز مشتريات بكرة وعايز يضيف صنف واحد من غير تحديد ساعة شراء.",
+      "utterance": "حط بطيخ في الـ shopping cart بتاعة بكرا",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "shopping",
+            "title": "بطيخ",
+            "collection": "Shopping",
+            "day": "tomorrow"
+          }
+        ],
+        "outcome": "إضافة بطيخ لقائمة Shopping بتاريخ استهداف ٢٧ أكتوبر فقط، من غير إشعار أو ساعة مفترضة."
+      },
+      "note": "فجوة حالية مقصودة في التقييم: تاريخ استهداف عنصر التسوق غير ممثل بالكامل في النموذج الحالي. المطلوب حفظ يوم بكرة؛ لا نحول التوقع لمراجعة كي ينجح الاختبار شكليًا."
+    },
+    {
+      "id": "D002",
+      "domain": "shopping",
+      "language": "ar",
+      "situation": "المستخدم لاحظ إن صنف أساسي قرب يخلص وهو واقف في المطبخ.",
+      "utterance": "الخل الأبيض قرب يخلص، ضيفه لقائمة المطبخ",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "shopping",
+            "title": "الخل الأبيض",
+            "collection": "المطبخ"
+          }
+        ],
+        "outcome": "إضافة الخل الأبيض لقائمة المطبخ مع فهم مرجع الضمير من نفس الكلام."
+      },
+      "note": "الملاحظة عن قرب النفاد تفسر طلب الشراء؛ لا تعني إن عملية دفع حصلت."
+    },
+    {
+      "id": "D003",
+      "domain": "shopping",
+      "language": "mixed",
+      "situation": "المستخدم بيجمع احتياجات مكتبه وبيحدد مواصفات وكمية.",
+      "utterance": "ضيف 2 packs of A4 paper وقلم أزرق لقائمة Office Supplies",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "shopping",
+            "title": "2 packs of A4 paper",
+            "collection": "Office Supplies"
+          },
+          {
+            "kind": "shopping",
+            "title": "قلم أزرق",
+            "collection": "Office Supplies"
+          }
+        ],
+        "outcome": "إضافة بندين مستقلين في Office Supplies، مع الاحتفاظ بكمية الورق ومواصفاته."
+      },
+      "note": "وجود A4 والرقم 2 مواصفات وكمية وليس مبلغًا ماليًا؛ لا تنشأ مصروفات."
+    },
+    {
+      "id": "D004",
+      "domain": "shopping",
+      "language": "ar",
+      "situation": "المستخدم بيجهز طلعة قصيرة لبكرة وعايز القائمة مرتبطة باليوم.",
+      "utterance": "حط أكياس تلج وطبق كرتون كبير في قائمة الرحلة لبكرة",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "shopping",
+            "title": "أكياس تلج",
+            "collection": "الرحلة",
+            "day": "tomorrow"
+          },
+          {
+            "kind": "shopping",
+            "title": "طبق كرتون كبير",
+            "collection": "الرحلة",
+            "day": "tomorrow"
+          }
+        ],
+        "outcome": "إضافة بندين لقائمة الرحلة وتحديد بكرة كيوم شراء فقط."
+      },
+      "note": "تاريخ التسوق يوم كامل بدون موعد تنبيه. دعم اليوم المطلوب يظل توقع منتج حتى لو التخزين الحالي يحتاج تطويرًا."
+    },
+    {
+      "id": "D005",
+      "domain": "shopping",
+      "language": "mixed",
+      "situation": "المستخدم بيسجل شراء مخطط له بميزانية قصوى، ولسه ما دفعش.",
+      "utterance": "حط wireless mouse في قائمة Office، الميزانية لحد 400 جنيه",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "shopping",
+            "title": "wireless mouse",
+            "collection": "Office",
+            "budget_minor": 40000,
+            "budget_currency": "EGP"
+          }
+        ],
+        "outcome": "إضافة wireless mouse لقائمة Office، وحفظ حد الميزانية ٤٠٠ جنيه كقيد مستقل بدون تسجيل مصروف أو تغيير اسم الصنف."
+      },
+      "note": "فجوة نموذج مقصودة: قيد الميزانية يحتاج حقلي budget_minor وbudget_currency مستقلين. المبلغ حد شراء مستقبلي وليس مدفوعًا؛ لا يندمج في عنوان الصنف ولا يتحول لمصروف."
+    },
+    {
+      "id": "D006",
+      "domain": "shopping",
+      "language": "ar",
+      "situation": "المستخدم بيفصل طلبات مكانين مختلفين في نفس الجملة.",
+      "utterance": "ضيف صابون أطباق ومناديل لقائمة البيت، وحط كمون لقائمة العطار",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "shopping",
+            "title": "صابون أطباق",
+            "collection": "البيت"
+          },
+          {
+            "kind": "shopping",
+            "title": "مناديل",
+            "collection": "البيت"
+          },
+          {
+            "kind": "shopping",
+            "title": "كمون",
+            "collection": "العطار"
+          }
+        ],
+        "outcome": "إنشاء ثلاثة بنود، اثنان في البيت وواحد في العطار، من غير خلط القائمتين."
+      },
+      "note": "تعدد القوائم في نفس الكلام حاجة يومية طبيعية؛ أي عجز حالي عن فصل النطاقات يظهر كفجوة تنفيذ."
+    },
+    {
+      "id": "D007",
+      "domain": "shopping",
+      "language": "en",
+      "situation": "المستخدم بيكتب احتياجات إصلاح منزلية مع نوع بطارية وكمية واضحة.",
+      "utterance": "Add a smoke detector and two AA batteries to the Hardware shopping list.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "shopping",
+            "title": "smoke detector",
+            "collection": "Hardware"
+          },
+          {
+            "kind": "shopping",
+            "title": "two AA batteries",
+            "collection": "Hardware"
+          }
+        ],
+        "outcome": "إضافة كاشف دخان وبند منفصل لبطاريتين من نوع AA في Hardware."
+      },
+      "note": "لا تُختزل الكمية أو نوع البطارية، ولا يُضاف موعد أو تذكير غير مطلوب."
+    },
+    {
+      "id": "D008",
+      "domain": "shopping",
+      "language": "mixed",
+      "situation": "المستخدم عايز حاجتين مرتبطتين بإعداد القهوة في قائمة متخصصة.",
+      "utterance": "ضيف coffee beans وpaper filters لقائمة Coffee Corner",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "shopping",
+            "title": "coffee beans",
+            "collection": "Coffee Corner"
+          },
+          {
+            "kind": "shopping",
+            "title": "paper filters",
+            "collection": "Coffee Corner"
+          }
+        ],
+        "outcome": "إضافة بندين إلى Coffee Corner مع بقاء أسماء الأصناف الإنجليزية بالإنجليزية."
+      },
+      "note": "لا تتحول الكلمات الإنجليزية لحروف عربية أثناء التنظيم؛ النص الأصلي يفضل محفوظًا."
+    },
+    {
+      "id": "D009",
+      "domain": "shopping",
+      "language": "ar",
+      "situation": "المستخدم بيطلب كميات مختلفة من أكل أساسي بدل قائمة أسماء مجردة.",
+      "utterance": "سجل في قائمة البقالة لتر لبن وست بيضات ونص كيلو جبنة بيضا",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "shopping",
+            "title": "لتر لبن",
+            "collection": "البقالة"
+          },
+          {
+            "kind": "shopping",
+            "title": "ست بيضات",
+            "collection": "البقالة"
+          },
+          {
+            "kind": "shopping",
+            "title": "نص كيلو جبنة بيضا",
+            "collection": "البقالة"
+          }
+        ],
+        "outcome": "إضافة ثلاثة أصناف بكمياتها ووحداتها كاملة في البقالة."
+      },
+      "note": "نص كيلو كمية شراء وليس نصف وحدة نقدية. لا تُخترع ماركات أو أسعار."
+    },
+    {
+      "id": "D010",
+      "domain": "shopping",
+      "language": "en",
+      "situation": "المستخدم ذكر بديلين ولم يحسم الصنف اللي عايزه.",
+      "utterance": "Add either oat milk or almond milk to Groceries; I have not decided which one.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "عدم إضافة النوعين تلقائيًا، وسؤال المستخدم أي بديل يقصده.",
+        "question": "تحب أضيف لبن الشوفان ولا لبن اللوز؟",
+        "pending_actions": [],
+        "executed_actions": []
+      },
+      "note": "الاختيار بين بديلين غير محسوم؛ إضافة الاثنين تعني شراء غير مطلوب."
+    },
+    {
+      "id": "D011",
+      "domain": "shopping",
+      "language": "ar",
+      "situation": "المستخدم غير رأيه أثناء الكلام، والكمية النهائية مش مستقرة.",
+      "utterance": "ضيف تلات علب زبادي لقائمة البيت، لا خليهم اتنين، استنى مش متأكد محتاج كام",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "عدم تثبيت كمية أو إضافة أكثر من نسخة، وطلب الكمية النهائية.",
+        "question": "أثبت كام علبة زبادي في قائمة البيت؟",
+        "pending_actions": [],
+        "executed_actions": []
+      },
+      "note": "التصحيح الذاتي وعدم التأكد يستدعيان توضيحًا، مع حفظ الكلام الأصلي للمراجعة."
+    },
+    {
+      "id": "D012",
+      "domain": "shopping",
+      "language": "mixed",
+      "situation": "المستخدم بينقل مكونات محددة من وصفة سمعها إلى قائمة شراء.",
+      "utterance": "للـ banana bread ضيف 3 bananas و200 grams flour وعلبة baking powder لقائمة Baking",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "shopping",
+            "title": "3 bananas",
+            "collection": "Baking"
+          },
+          {
+            "kind": "shopping",
+            "title": "200 grams flour",
+            "collection": "Baking"
+          },
+          {
+            "kind": "shopping",
+            "title": "علبة baking powder",
+            "collection": "Baking"
+          }
+        ],
+        "outcome": "إضافة المكونات الثلاثة المذكورة فقط بكمياتها إلى Baking."
+      },
+      "note": "اسم الوصفة سياق للشراء وليس طلب اختراع وصفة أو مكونات إضافية."
+    },
+    {
+      "id": "D013",
+      "domain": "reminder",
+      "language": "ar",
+      "situation": "المستخدم محتاج تنبيه قريب وهو مشغول في شغل مكتبي.",
+      "utterance": "فكرني بعد عشرين دقيقة أشرب كوباية مية",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "reminder",
+            "title": "أشرب كوباية مية",
+            "after_minutes": 20
+          }
+        ],
+        "outcome": "حفظ تذكير وجدولة إشعار بعد ٢٠ دقيقة من وقت التقييم."
+      },
+      "note": "الكلام طلب تنبيه صريح؛ يُنشأ تذكير وليس حدث تقويم أو ملاحظة فقط."
+    },
+    {
+      "id": "D014",
+      "domain": "reminder",
+      "language": "mixed",
+      "situation": "المستخدم مستني نقل ملف كبير وعايز يرجع له بعد مدة محددة.",
+      "utterance": "اعمل reminder بعد 45 دقيقة أراجع إذا الـ download خلص",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "reminder",
+            "title": "أراجع إذا الـ download خلص",
+            "after_minutes": 45
+          }
+        ],
+        "outcome": "إنشاء تذكير بعد ٤٥ دقيقة بعنوان يوضح متابعة تنزيل الملف."
+      },
+      "note": "التطبيق لا يفحص الملف فعليًا ولا يفتح رابطًا؛ المطلوب إشعار للمستخدم فقط."
+    },
+    {
+      "id": "D015",
+      "domain": "reminder",
+      "language": "en",
+      "situation": "المستخدم عايز يتابع خطوة بيتية بعد ساعة ونص من غير موعد تقويم.",
+      "utterance": "Remind me in 90 minutes to move the laundry to the dryer.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "reminder",
+            "title": "Move the laundry to the dryer",
+            "after_minutes": 90
+          }
+        ],
+        "outcome": "جدولة إشعار بعد ٩٠ دقيقة، مع حفظ المهمة كنص واضح."
+      },
+      "note": "مدة نسبية واحدة كاملة؛ لا تُختزل إلى ساعة ولا يُنشأ اجتماع وهمي."
+    },
+    {
+      "id": "D016",
+      "domain": "reminder",
+      "language": "ar",
+      "situation": "المستخدم عنده إجراء إداري عام بكرة الصبح وعايز تنبيه في ساعة محددة.",
+      "utterance": "فكرني بكرة الساعة عشرة الصبح أجدد بطاقة المكتبة",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "reminder",
+            "title": "أجدد بطاقة المكتبة",
+            "due_local": "2026-10-27T10:00:00+03:00"
+          }
+        ],
+        "outcome": "جدولة تذكير يوم ٢٧ أكتوبر الساعة العاشرة صباحًا بتوقيت القاهرة."
+      },
+      "note": "بطاقة مكتبة افتراضية؛ لا تُطلب بيانات حساب ولا يُجرى تجديد فعلي."
+    },
+    {
+      "id": "D017",
+      "domain": "reminder",
+      "language": "mixed",
+      "situation": "المستخدم بيجهز عجينة من الفريزر في يوم معين.",
+      "utterance": "Remind me الأربعاء 2 PM أطلع pizza dough من الفريزر",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "reminder",
+            "title": "أطلع pizza dough من الفريزر",
+            "due_local": "2026-10-28T14:00:00+03:00"
+          }
+        ],
+        "outcome": "تذكير يوم الأربعاء ٢٨ أكتوبر الساعة الثانية بعد الظهر."
+      },
+      "note": "الوقت 2 PM صريح، وطلب التذكير لا يتحول إلى موعد تقويم."
+    },
+    {
+      "id": "D018",
+      "domain": "reminder",
+      "language": "ar",
+      "situation": "المستخدم حدد اليوم لكنه نسي وقت الإشعار.",
+      "utterance": "فكرني بكرة أودي الجزمة للتصليح",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "حفظ الطلب للمراجعة وسؤال المستخدم عن ساعة التنبيه يوم بكرة.",
+        "question": "تحب أفكرك بكرة الساعة كام؟",
+        "pending_actions": [],
+        "executed_actions": []
+      },
+      "note": "لا تُفترض التاسعة صباحًا أو أي ساعة افتراضية بسبب وجود كلمة بكرة."
+    },
+    {
+      "id": "D019",
+      "domain": "reminder",
+      "language": "mixed",
+      "situation": "المستخدم عايز يكلم فني افتراضي في وقت مساء مكتوب بنظام ٢٤ ساعة.",
+      "utterance": "اعمل reminder الخميس الساعة 18:15 أكلم الـ technician عن water filter",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "reminder",
+            "title": "أكلم الـ technician عن water filter",
+            "due_local": "2026-10-29T18:15:00+03:00"
+          }
+        ],
+        "outcome": "تنبيه يوم الخميس ٢٩ أكتوبر الساعة السادسة والربع مساءً."
+      },
+      "note": "لا يحتاج هذا الطلب الوصول لجهات الاتصال ولا إجراء مكالمة تلقائية."
+    },
+    {
+      "id": "D020",
+      "domain": "reminder",
+      "language": "en",
+      "situation": "المستخدم حدد يوم ووقت محتمل للصباح أو المساء.",
+      "utterance": "Remind me tomorrow at 5 to submit the form.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "عدم جدولة تنبيه قبل معرفة هل الخامسة صباحًا أم مساءً.",
+        "question": "تقصد بكرة الساعة ٥ الصبح ولا ٥ مساءً؟",
+        "pending_actions": [],
+        "executed_actions": []
+      },
+      "note": "نظام ١٢ ساعة ناقص AM/PM؛ التخمين حتى لو معتاد في الحياة اليومية غير مقبول."
+    },
+    {
+      "id": "D021",
+      "domain": "reminder",
+      "language": "ar",
+      "situation": "المستخدم محتاج مدة قصيرة مكتوبة بكلمات مصرية.",
+      "utterance": "فكرني بعد نص ساعة أرجع الكتب على الرف",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "reminder",
+            "title": "أرجع الكتب على الرف",
+            "after_minutes": 30
+          }
+        ],
+        "outcome": "حفظ تنبيه بعد ثلاثين دقيقة، وليس خمسين أو نصف دقيقة."
+      },
+      "note": "نص ساعة تعني ٣٠ دقيقة، ويظل الطلب تذكيرًا محليًا بسيطًا."
+    },
+    {
+      "id": "D022",
+      "domain": "reminder",
+      "language": "mixed",
+      "situation": "المستخدم بيأكد إنه عايز إشعار لتجهيز إجراء سفر افتراضي، مش موعد طويل.",
+      "utterance": "بكرة 11 AM عايز notification عشان أعمل online check-in، مش meeting",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "reminder",
+            "title": "أعمل online check-in",
+            "due_local": "2026-10-27T11:00:00+03:00"
+          }
+        ],
+        "outcome": "إنشاء إشعار يوم ٢٧ أكتوبر الساعة الحادية عشرة صباحًا فقط."
+      },
+      "note": "نفي كونه meeting قيد على النوع، وليس إلغاءً لطلب الإشعار الصريح. لا تُخترع مدة حدث."
+    },
+    {
+      "id": "D023",
+      "domain": "reminder",
+      "language": "ar",
+      "situation": "المستخدم عايز عادة يومية لكن التكرار لسه غير مدعوم في نطاق النسخة الحالية.",
+      "utterance": "فكرني كل يوم الساعة تمانية الصبح أروي نبات الشباك",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "توضيح عدم دعم التكرار الحالي وسؤال المستخدم إن كان يريد تذكيرًا لمرة واحدة.",
+        "question": "التكرار اليومي غير مدعوم حاليًا. تحب أعمل تذكيرًا لمرة واحدة، وأي يوم؟",
+        "pending_actions": [],
+        "executed_actions": []
+      },
+      "note": "لا تُنشأ نسخة واحدة على إنها تذكير يومي ناجح؛ لا يوعد التطبيق بتكرار غير موجود."
+    },
+    {
+      "id": "D024",
+      "domain": "reminder",
+      "language": "mixed",
+      "situation": "المستخدم حط حاجة في الفرن وعايز إشعار بعد مدة واضحة.",
+      "utterance": "Set a reminder in 25 minutes أشوف الصينية في الفرن",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "reminder",
+            "title": "أشوف الصينية في الفرن",
+            "after_minutes": 25
+          }
+        ],
+        "outcome": "جدولة تنبيه بعد ٢٥ دقيقة بعنوان متابعة الصينية."
+      },
+      "note": "لا يُقدَّم ضمان أمان للفرن ولا يُفترض إطفاؤه تلقائيًا؛ المطلوب تذكير فقط."
+    },
+    {
+      "id": "D025",
+      "domain": "calendar",
+      "language": "ar",
+      "situation": "المستخدم عنده موعد استلام متفق عليه وعايز يخصص له فترة محددة في التقويم.",
+      "utterance": "حط في التقويم استلام الطرد بكرة الساعة تسعة ونص الصبح لمدة عشرين دقيقة",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "calendar",
+            "title": "استلام الطرد",
+            "due_local": "2026-10-27T09:30:00+03:00",
+            "duration_minutes": 20
+          }
+        ],
+        "outcome": "إضافة حدث يوم ٢٧ أكتوبر من ٩:٣٠ إلى ٩:٥٠ صباحًا."
+      },
+      "note": "حدث تقويم محدد المدة، وليس طلب تتبع شحنة أو حجز خدمة خارجية."
+    },
+    {
+      "id": "D026",
+      "domain": "calendar",
+      "language": "mixed",
+      "situation": "المستخدم عنده موعد صيانة أسنان افتراضي موجود بالفعل، ومحتاج يسجله في التقويم.",
+      "utterance": "ضيف dental appointment يوم الثلاثاء 27 أكتوبر الساعة 11:30 AM لمدة 40 minutes",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "calendar",
+            "title": "dental appointment",
+            "due_local": "2026-10-27T11:30:00+03:00",
+            "duration_minutes": 40
+          }
+        ],
+        "outcome": "تسجيل موعد ٢٧ أكتوبر من ١١:٣٠ صباحًا إلى ١٢:١٠ ظهرًا."
+      },
+      "note": "لا يتم التواصل مع عيادة أو حجز موعد؛ المثال بيانات اصطناعية لتسجيل حدث متفق عليه."
+    },
+    {
+      "id": "D027",
+      "domain": "calendar",
+      "language": "en",
+      "situation": "المستخدم بيحجز وقت تركيز شخصي من بداية ونهاية صريحتين.",
+      "utterance": "Block Tuesday October 27 from 13:00 to 14:15 for focused reading.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "calendar",
+            "title": "Focused reading",
+            "due_local": "2026-10-27T13:00:00+03:00",
+            "duration_minutes": 75
+          }
+        ],
+        "outcome": "إنشاء بلوك قراءة يوم ٢٧ أكتوبر مدته ٧٥ دقيقة بالضبط."
+      },
+      "note": "فرق الوقت يُستنتج من البداية والنهاية المكتوبتين، وليس من مدة افتراضية للاجتماعات."
+    },
+    {
+      "id": "D028",
+      "domain": "calendar",
+      "language": "ar",
+      "situation": "المستخدم قال بداية زيارة لكن لم يقل نهايتها أو مدتها.",
+      "utterance": "سجل في التقويم زيارة معرض الكتب بكرة الساعة اتنين الظهر",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "عدم إنشاء حدث بمدة عشوائية، وطلب المدة أو النهاية.",
+        "question": "زيارة معرض الكتب هتستمر قد إيه، أو تنتهي الساعة كام؟",
+        "pending_actions": [],
+        "executed_actions": []
+      },
+      "note": "الساعة معروفة لكن الحدث يحتاج نهاية واضحة في نطاق هذا التطبيق."
+    },
+    {
+      "id": "D029",
+      "domain": "calendar",
+      "language": "mixed",
+      "situation": "المستخدم بيسجل لقاء تعريفي افتراضي بمدة ونظام ٢٤ ساعة.",
+      "utterance": "ضيف school orientation الخميس 29 أكتوبر الساعة 16:00 لمدة 50 دقيقة",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "calendar",
+            "title": "school orientation",
+            "due_local": "2026-10-29T16:00:00+03:00",
+            "duration_minutes": 50
+          }
+        ],
+        "outcome": "إنشاء حدث يوم الخميس من الرابعة إلى الرابعة وخمسين مساءً."
+      },
+      "note": "النص عام واصطناعي، ولا يتضمن بيانات مدرسة فعلية أو طفل أو جهات اتصال."
+    },
+    {
+      "id": "D030",
+      "domain": "calendar",
+      "language": "mixed",
+      "situation": "المستخدم صحح يوم الاجتماع أثناء الكلام وما أكدش اختياره النهائي.",
+      "utterance": "حط briefing meeting الأربعاء 10 AM نص ساعة، لا خليه الخميس، استنى هأكد اليوم بعدين",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "حفظ طلب الاجتماع للمراجعة من غير حجز الأربعاء أو الخميس.",
+        "question": "أثبت الـ briefing يوم الأربعاء ولا الخميس، أم نستنى تأكيدك؟",
+        "pending_actions": [],
+        "executed_actions": []
+      },
+      "note": "اليوم محل تصحيح وعدم تأكيد؛ لا يُطبَّق أول تاريخ أو آخر تاريخ تلقائيًا."
+    },
+    {
+      "id": "D031",
+      "domain": "calendar",
+      "language": "ar",
+      "situation": "المستخدم عايز مكالمة عائلية افتراضية كحدث له بداية ونهاية.",
+      "utterance": "اعمل موعد مكالمة عائلية الأربعاء من ٦:٠٠ مساءً لحد ٦:٤٠ مساءً",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "calendar",
+            "title": "مكالمة عائلية",
+            "due_local": "2026-10-28T18:00:00+03:00",
+            "duration_minutes": 40
+          }
+        ],
+        "outcome": "إضافة مكالمة يوم ٢٨ أكتوبر من ٦:٠٠ إلى ٦:٤٠ مساءً."
+      },
+      "note": "كلمة موعد وبداية ونهاية صريحتان تحددان التقويم؛ لا تتم مكالمة أشخاص أو إرسال دعوة."
+    },
+    {
+      "id": "D032",
+      "domain": "calendar",
+      "language": "en",
+      "situation": "المستخدم بيحجز فترة نشاط شخصي مبكرة في يوم معلوم.",
+      "utterance": "Add a running session on Thursday October 29 at 07:15 for 35 minutes.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "calendar",
+            "title": "Running session",
+            "due_local": "2026-10-29T07:15:00+03:00",
+            "duration_minutes": 35
+          }
+        ],
+        "outcome": "إنشاء حدث جري يوم ٢٩ أكتوبر من ٧:١٥ إلى ٧:٥٠ صباحًا."
+      },
+      "note": "الوقت بنظام ٢٤ ساعة ومدة الحدث محددة؛ لا يُنشأ تكرار أسبوعي غير مطلوب."
+    },
+    {
+      "id": "D033",
+      "domain": "calendar",
+      "language": "ar",
+      "situation": "المستخدم بيسجل جلسة ممتدة بعد منتصف الليل وحدد اليومين صراحة.",
+      "utterance": "احجزلي في التقويم جلسة مشاهدة بكرة من حداشر بالليل لحد واحدة الصبح يوم الأربعاء، يعني ساعتين",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "calendar",
+            "title": "جلسة مشاهدة",
+            "due_local": "2026-10-27T23:00:00+03:00",
+            "duration_minutes": 120
+          }
+        ],
+        "outcome": "حدث يبدأ ٢٧ أكتوبر ١١ مساءً وينتهي ٢٨ أكتوبر ١ صباحًا، مدته ساعتان."
+      },
+      "note": "عبور منتصف الليل صريح، فلا يُرفض الحدث على إن النهاية قبل البداية ولا تتغير مدة الساعتين."
+    },
+    {
+      "id": "D034",
+      "domain": "calendar",
+      "language": "mixed",
+      "situation": "المستخدم عايز حدث وتنبيه قبله في طلب واحد مع مرجع واضح لنفس الحدث.",
+      "utterance": "حط design review الخميس 29 أكتوبر الساعة 4 PM لمدة 45 دقيقة، وفكرني قبله بنص ساعة",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "calendar",
+            "title": "design review",
+            "due_local": "2026-10-29T16:00:00+03:00",
+            "duration_minutes": 45
+          },
+          {
+            "kind": "reminder",
+            "title": "design review",
+            "due_local": "2026-10-29T15:30:00+03:00"
+          }
+        ],
+        "outcome": "تسجيل اجتماع من ٤ إلى ٤:٤٥ مساءً يوم ٢٩ أكتوبر، وإشعار بعنوان الاجتماع في ٣:٣٠ مساءً."
+      },
+      "note": "المدة النسبية للتنبيه محسوبة من بداية الحدث المذكور، وليست بعد ٣٠ دقيقة من الوقت الحالي."
+    },
+    {
+      "id": "D035",
+      "domain": "work",
+      "language": "ar",
+      "situation": "المستخدم بيبدأ مشروع عمل افتراضي لتهيئة عميل جديد، وعايز يحفظ أول خطوة تنفيذية.",
+      "utterance": "افتح مشروع اسمه تهيئة عميل جديد، وسجل تحته مهمة أجهز قائمة متطلبات البداية",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "create_project",
+            "title": "تهيئة عميل جديد"
+          },
+          {
+            "kind": "task",
+            "title": "أجهز قائمة متطلبات البداية",
+            "collection": "تهيئة عميل جديد"
+          }
+        ],
+        "outcome": "إنشاء مشروع تهيئة عميل جديد، وتحته مهمة واحدة لتجهيز متطلبات البداية."
+      },
+      "note": "مثال مكتب عام واصطناعي، بدون بيانات عميل فعلي. إنشاء مشروع صريح قدرة منتج مقصودة؛ لا يضيع طلب الإنشاء داخل ملاحظة."
+    },
+    {
+      "id": "D036",
+      "domain": "work",
+      "language": "mixed",
+      "situation": "المستخدم بيجهز ورشة داخلية في الشغل وعايز يفتح مشروعها ويحفظ قرار السعة.",
+      "utterance": "افتح project اسمه Workshop Prep، وحط note إن العدد الأقصى 8 مشاركين في الورشة الداخلية",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "create_project",
+            "title": "Workshop Prep"
+          },
+          {
+            "kind": "note",
+            "title": "العدد الأقصى 8 مشاركين في الورشة الداخلية",
+            "collection": "Workshop Prep"
+          }
+        ],
+        "outcome": "إنشاء Workshop Prep وحفظ قرار الحد الأقصى للمشاركين داخله، بدون دعوة أي شخص."
+      },
+      "note": "الرقم 8 حد حضور وليس مبلغًا أو وقتًا. لا تُنشأ دعوات أو قائمة جهات اتصال من مجرد تسجيل قرار."
+    },
+    {
+      "id": "D037",
+      "domain": "work",
+      "language": "en",
+      "situation": "المستخدم بيضيف مهمة مشتريات مكتبية لمقارنة عروض موردين، مش لتنفيذ شراء أو تواصل خارجي.",
+      "utterance": "Add a task to Vendor Review to compare three supplier quotes before choosing a vendor.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "task",
+            "title": "Compare three supplier quotes before choosing a vendor",
+            "collection": "Vendor Review"
+          }
+        ],
+        "outcome": "إضافة مهمة مقارنة ثلاثة عروض أسعار إلى Vendor Review، دون اختيار مورد تلقائيًا أو تسجيل مبلغ."
+      },
+      "note": "الموردون افتراضيون وغير مسمّين. كلمة quotes هنا عروض أسعار لمهمة مقارنة، وليست اقتباسات أو مصروفًا مدفوعًا."
+    },
+    {
+      "id": "D038",
+      "domain": "work",
+      "language": "ar",
+      "situation": "بعد مناقشة عمل افتراضية، المستخدم عايز يحفظ قرار العميل داخل مشروعه من غير اختراع تكليفات.",
+      "utterance": "سجل ملاحظة في مشروع مراجعة مقترح العميل إن العميل وافق على تجربة داخلية قبل الإطلاق العام",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "note",
+            "title": "العميل وافق على تجربة داخلية قبل الإطلاق العام",
+            "collection": "مراجعة مقترح العميل"
+          }
+        ],
+        "outcome": "حفظ قرار العميل كما قيل في مشروع مراجعة مقترح العميل فقط."
+      },
+      "note": "القرار بيانات اصطناعية في السيناريو، وليس معلومة عن عميل حقيقي. لا يُفترض تاريخ إطلاق أو يُرسل إخطار أو تُنشأ مهام غير مطلوبة."
+    },
+    {
+      "id": "D039",
+      "domain": "work",
+      "language": "mixed",
+      "situation": "المستخدم بيحدد موعدًا نهائيًا لمخرج مطلوب في مشروع بوابة عميل افتراضي.",
+      "utterance": "في project Client Portal ضيف task أجهز الـ screenshots، والـ deadline الخميس 29 أكتوبر 5 PM",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "task",
+            "title": "أجهز الـ screenshots",
+            "collection": "Client Portal",
+            "due_local": "2026-10-29T17:00:00+03:00"
+          }
+        ],
+        "outcome": "حفظ مهمة تجهيز الصور في Client Portal بموعد نهائي الخميس ٢٩ أكتوبر الخامسة مساءً."
+      },
+      "note": "الموعد النهائي خاص بالمهمة؛ لا يُنشأ إشعار منفصل من غير طلب تنبيه. اسم المشروع عام ولا يشير إلى نظام أو عميل فعلي."
+    },
+    {
+      "id": "D040",
+      "domain": "work",
+      "language": "ar",
+      "situation": "المستخدم لاحظ بطء تسليم العمل بين زملاء، وعايز تطوير فكرة لتحسين العملية قبل أي تنفيذ.",
+      "utterance": "عندي فكرة نقلل بيها وقت تسليم الشغل بين الزملاء، طورهالي كنقاط بسيطة نقدر نجربها في المكتب",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "develop_idea",
+            "title": "تقليل وقت تسليم الشغل بين الزملاء"
+          }
+        ],
+        "outcome": "حفظ الفكرة الأصلية وتقديم مسودة قصيرة لتجربة تحسين تسليم العمل بين الزملاء."
+      },
+      "note": "تطوير أفكار هدف منتج طموح يتجاوز تصنيف ملاحظة. المقترحات تُعرض كاقتراحات، ولا يُخترع قياس وقت أو تقييم أشخاص ولا تُعدّل إجراءات فعلية تلقائيًا."
+    },
+    {
+      "id": "D041",
+      "domain": "work",
+      "language": "mixed",
+      "situation": "المستخدم عايز تجربة محدودة لفرز طلبات الخدمة في فريق افتراضي بدل مشروع ضخم من البداية.",
+      "utterance": "وسعلي idea بتاعة service request triage pilot، ركز على تجربة صغيرة في الفريق مش business plan طويل",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "develop_idea",
+            "title": "service request triage pilot"
+          }
+        ],
+        "outcome": "حفظ الفكرة وإنشاء مسودة قصيرة لتجربة فرز طلبات الخدمة، مع فصل الاقتراحات عن نص المستخدم."
+      },
+      "note": "لا تُخترع أعداد طلبات أو مؤشرات أداء أو صلاحيات. لا تُعدّل تذاكر أو تُرسل رسائل؛ تطوير الفكرة قدرة منتج مطلوبة قد تتجاوز القواعد الحالية."
+    },
+    {
+      "id": "D042",
+      "domain": "work",
+      "language": "en",
+      "situation": "المستخدم بيسجل قرار اجتماع عمل افتراضي وبيستبعد التنبيه صراحة.",
+      "utterance": "In Release Planning, save this meeting decision: run the pilot with the internal support team before any external rollout. No reminder needed.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "note",
+            "title": "Run the pilot with the internal support team before any external rollout",
+            "collection": "Release Planning"
+          }
+        ],
+        "outcome": "حفظ قرار الاجتماع في Release Planning فقط، من غير تنبيه أو حدث أو دعوات."
+      },
+      "note": "نفي الحاجة لتذكير لا يلغي طلب حفظ القرار. لا يُفترض موعد للإطلاق ولا يُعتبر القرار موافقة على نشر نظام حقيقي."
+    },
+    {
+      "id": "D043",
+      "domain": "work",
+      "language": "ar",
+      "situation": "المستخدم يشير لعنصر سابق بضمير، من غير ما يحدد هل هو مهمة أو موعد.",
+      "utterance": "انقل معادها للخميس الساعة تلاتة العصر",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "لا يُعدل أي عنصر قبل تحديده؛ اليوم والساعة مذكوران، ولا يُفترض أن المقصود مهمة أو موعد تقويم.",
+        "question": "تقصد أنهي مهمة أو موعد عايز تنقل معاده؟",
+        "pending_actions": [],
+        "executed_actions": []
+      },
+      "note": "السؤال لا يخترع أسماء خيارات من سياق تأليفي غير متاح للتطبيق. لا يتم اختيار آخر مهمة أو تعديل كل المهام، ولا يُعاد السؤال عن وقت معلوم بالفعل."
+    },
+    {
+      "id": "D044",
+      "domain": "work",
+      "language": "mixed",
+      "situation": "المستخدم عايز ينقل مهمة مكتب موجودة بين مشروعي عمل افتراضيين، مع التحقق من مطابقة واحدة في المشروع المصدر.",
+      "utterance": "انقل task Prepare kickoff checklist من project Client Launch إلى project Internal Handover",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "modify",
+            "title": "Prepare kickoff checklist",
+            "collection": "Internal Handover",
+            "item_id": "d0440000-0000-4000-8000-000000000003",
+            "from_collection": "Client Launch"
+          }
+        ],
+        "outcome": "نقل المهمة الوحيدة المطابقة إلى Internal Handover مع بقاء UUID d0440000-0000-4000-8000-000000000003 والنص كما هما؛ دون نسخة جديدة."
+      },
+      "note": "فجوة منتج تعتمد على الحالة: النقل يحتاج بحثًا في المهام والمشروعات الموجودة وتحققًا من مطابقة واحدة في المصدر. يجب تجهيز حالة اختبار مناسبة؛ إذا لم توجد مطابقة واحدة يُطلب توضيح بدل اختراع مهمة أو مشروع.",
+      "state": {
+        "projects": [
+          {
+            "id": "d0440000-0000-4000-8000-000000000001",
+            "name": "Client Launch"
+          },
+          {
+            "id": "d0440000-0000-4000-8000-000000000002",
+            "name": "Internal Handover"
+          }
+        ],
+        "tasks": [
+          {
+            "id": "d0440000-0000-4000-8000-000000000003",
+            "title": "Prepare kickoff checklist",
+            "project_id": "d0440000-0000-4000-8000-000000000001"
+          }
+        ]
+      }
+    },
+    {
+      "id": "D045",
+      "domain": "work",
+      "language": "ar",
+      "situation": "المستخدم بيجهز تدريبًا داخليًا وعايز يسجل خطوة إرسال ورقة التدريب ويتنبه لها بعد ساعة.",
+      "utterance": "سجل مهمة إرسال ورقة التدريب في مشروع تجهيز تدريب الموظفين، وفكرني بيها بعد ساعة",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "task",
+            "title": "إرسال ورقة التدريب",
+            "collection": "تجهيز تدريب الموظفين"
+          },
+          {
+            "kind": "reminder",
+            "title": "إرسال ورقة التدريب",
+            "after_minutes": 60
+          }
+        ],
+        "outcome": "إضافة مهمة إرسال ورقة التدريب للمشروع وتذكير بعنوانها بعد ساعة، وليس تذكيرًا عنوانه بيها."
+      },
+      "note": "لا تُرسل الورقة أو أي رسالة فعليًا؛ المطلوب تسجيل مهمة وتنبيه. مرجع الضمير موجود في نفس الجملة، وإعادة معالجة المصدر لا تكرر المهمة أو الإشعار."
+    },
+    {
+      "id": "D046",
+      "domain": "work",
+      "language": "mixed",
+      "situation": "المستخدم بدأ طلب تغيير اسم مشروع عمل ثم تراجع عنه أثناء الكلام.",
+      "utterance": "غير اسم project Client Onboarding لـ Client Enablement، لا استنى سيبه زي ما هو",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "الإبقاء على اسم Client Onboarding من غير تعديل تلقائي، مع سؤال تأكيد قصير للمقصود النهائي.",
+        "question": "أسيب اسم المشروع Client Onboarding من غير تغيير؟",
+        "pending_actions": [],
+        "executed_actions": []
+      },
+      "note": "التصحيح أثناء أمر تعديل يُعرض للتأكيد. لا ينفّذ التطبيق طلب إعادة التسمية الأول ثم يتجاهل التراجع، ولا ينشئ مشروعًا ثانيًا."
+    },
+    {
+      "id": "D047",
+      "domain": "expense",
+      "language": "ar",
+      "situation": "المستخدم دفع ثمن مشتريات أكل فعليًا وذكر مبلغًا بكسور وأرقام عربية.",
+      "utterance": "دفعت ١٨٧٫٥٠ جنيه خضار وفاكهة النهارده",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "expense",
+            "title": "خضار وفاكهة",
+            "amount_minor": 18750,
+            "currency": "EGP",
+            "category": "groceries"
+          }
+        ],
+        "outcome": "حفظ مصروف ١٨٧ جنيهًا و٥٠ قرشًا بتاريخ اليوم تحت البقالة."
+      },
+      "note": "مبلغ مدفوع واضح، لا ميزانية شراء. يُخزن بوحدات صغرى صحيحة دون تقريب أو تحويل عملة."
+    },
+    {
+      "id": "D048",
+      "domain": "expense",
+      "language": "mixed",
+      "situation": "المستخدم فاكر نوع المصروف لكنه متردد بين مبلغين.",
+      "utterance": "سجل expense للقهوة 55 EGP أو 65، مش فاكر الحساب بالظبط",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "عدم تسجيل مبلغ قبل حسم هل المدفوع ٥٥ أم ٦٥ جنيهًا.",
+        "question": "الحساب كان ٥٥ ولا ٦٥ جنيه؟",
+        "pending_actions": [],
+        "executed_actions": []
+      },
+      "note": "وجود مبلغين محتملين لا يبرر اختيار الأول أو جمعهما أو إنشاء مصروفين."
+    },
+    {
+      "id": "D049",
+      "domain": "expense",
+      "language": "en",
+      "situation": "المستخدم دفع اشتراك برنامج تجريبي بعملة أجنبية محددة.",
+      "utterance": "I paid 12.99 USD for a budgeting app subscription today.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "expense",
+            "title": "Budgeting app subscription",
+            "amount_minor": 1299,
+            "currency": "USD",
+            "category": "bills"
+          }
+        ],
+        "outcome": "تسجيل ١٢ دولارًا و٩٩ سنتًا تحت الفواتير، منفصلًا عن إجماليات الجنيه."
+      },
+      "note": "لا يُفترض سعر صرف، ولا يتكرر الاشتراك تلقائيًا من مجرد كلمة subscription."
+    },
+    {
+      "id": "D050",
+      "domain": "expense",
+      "language": "en",
+      "situation": "المستخدم بيسجل أجرة مواصلات افتراضية باليورو.",
+      "utterance": "Record an expense of 18.75 EUR for a train ticket today.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "expense",
+            "title": "Train ticket",
+            "amount_minor": 1875,
+            "currency": "EUR",
+            "category": "transport"
+          }
+        ],
+        "outcome": "حفظ ١٨ يورو و٧٥ سنتًا كمواصلات، مع الاحتفاظ باليورو في ملخص الشهر."
+      },
+      "note": "المبلغ مصروف واضح بعملة صريحة. لا يُنشأ حجز قطار أو حدث سفر تلقائيًا."
+    },
+    {
+      "id": "D051",
+      "domain": "expense",
+      "language": "ar",
+      "situation": "راجع من مشوار وعايز يسجل أجرة الميكروباص بالكسور.",
+      "utterance": "دفعت تمنتاشر جنيه ونص ميكروباص، سجلهم مصروف مواصلات.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "expense",
+            "title": "ميكروباص",
+            "amount_minor": 1850,
+            "currency": "EGP",
+            "category": "transport"
+          }
+        ],
+        "outcome": "يحفظ مصروف مواصلات بمبلغ ١٨٫٥٠ جنيه مصري عن المشوار الحالي."
+      },
+      "note": "لا يقرب المبلغ إلى تسعتاشر جنيه ولا يعامله كموعد."
+    },
+    {
+      "id": "D052",
+      "domain": "expense",
+      "language": "ar",
+      "situation": "دفع فاتورة الكهرباء ويريد فصلها عن مشتريات البيت.",
+      "utterance": "سجل مصروف ستمية اتنين وأربعين جنيه وخمسة وسبعين قرش فاتورة كهربا.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "expense",
+            "title": "فاتورة كهرباء",
+            "amount_minor": 64275,
+            "currency": "EGP",
+            "category": "bills"
+          }
+        ],
+        "outcome": "يسجل ٦٤٢٫٧٥ جنيه في الفواتير فقط، دون إنشاء تذكير أو دفعة متكررة."
+      },
+      "note": "ذكر الفاتورة لا يعني تفويض التطبيق بدفعها أو تكرارها شهريًا."
+    },
+    {
+      "id": "D053",
+      "domain": "expense",
+      "language": "ar",
+      "situation": "اشترى خضار وفاكهة من السوق وقال المبلغ بصيغة مصرية.",
+      "utterance": "اشتريت خضار وفاكهة بستة وتسعين جنيه ونص، حطهم في مصاريف البقالة.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "expense",
+            "title": "خضار وفاكهة",
+            "amount_minor": 9650,
+            "currency": "EGP",
+            "category": "groceries"
+          }
+        ],
+        "outcome": "يحفظ مصروف بقالة بقيمة ٩٦٫٥٠ جنيه مصري."
+      },
+      "note": "عملية الشراء حصلت بالفعل؛ لا يحوّل الأصناف إلى قائمة تسوق مستقبلية."
+    },
+    {
+      "id": "D054",
+      "domain": "expense",
+      "language": "mixed",
+      "situation": "تم خصم اشتراك رقمي بالدولار وعايز يحتفظ بعملته الأصلية.",
+      "utterance": "الـ streaming subscription اتخصم النهارده، سجل expense بقيمة 12.99 USD في الفواتير.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "expense",
+            "title": "Streaming subscription",
+            "amount_minor": 1299,
+            "currency": "USD",
+            "category": "bills"
+          }
+        ],
+        "outcome": "يحفظ اشتراكًا بقيمة ١٢٫٩٩ دولار ضمن الفواتير، منفصلًا عن ملخص الجنيه."
+      },
+      "note": "لا يجري تحويل عملة ولا ينشئ اشتراكًا جديدًا أو تذكير تجديد غير مطلوب."
+    },
+    {
+      "id": "D055",
+      "domain": "expense",
+      "language": "mixed",
+      "situation": "اشترى حاجات من الصيدلية أثناء سفر وذكر العملة صراحة.",
+      "utterance": "دفعت 47.20 EUR في pharmacy، سجلها مصروف صحة.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "expense",
+            "title": "Pharmacy",
+            "amount_minor": 4720,
+            "currency": "EUR",
+            "category": "health"
+          }
+        ],
+        "outcome": "يسجل ٤٧٫٢٠ يورو في فئة الصحة مع الاحتفاظ بالنص المختلط."
+      },
+      "note": "التصنيف مالي فقط؛ لا يستنتج اسم دواء أو جرعة من كلمة صيدلية."
+    },
+    {
+      "id": "D056",
+      "domain": "expense",
+      "language": "en",
+      "situation": "اشترى قهوة في طريقه للشغل ويملي مصروفًا واضحًا بالإنجليزية.",
+      "utterance": "Log a 7.50 USD expense for the coffee I bought on the way to work.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "expense",
+            "title": "Coffee",
+            "amount_minor": 750,
+            "currency": "USD",
+            "category": "food"
+          }
+        ],
+        "outcome": "يحفظ مصروف طعام بقيمة ٧٫٥٠ دولار دون دمجه مع الجنيه أو اليورو."
+      },
+      "note": "المبلغ سبعة دولارات ونصف، وليس سبعمئة وخمسين دولارًا."
+    },
+    {
+      "id": "D057",
+      "domain": "memory",
+      "language": "ar",
+      "situation": "وضع نسخة مفاتيح احتياطية ويريد تذكر مكانها لاحقًا.",
+      "utterance": "افتكر إن نسخة مفاتيح البيت الاحتياطي في درج المدخل، جوه علبة زرقا.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "note",
+            "title": "مكان نسخة مفاتيح البيت الاحتياطية"
+          }
+        ],
+        "outcome": "يحفظ ملاحظة بالمكان المذكور والعلبة الزرقاء، دون موعد أو تنبيه."
+      },
+      "note": "كل التفاصيل أمثلة مصطنعة؛ لا ينشر مكان المفاتيح خارج الجهاز."
+    },
+    {
+      "id": "D058",
+      "domain": "memory",
+      "language": "ar",
+      "situation": "قاس قطعة في البيت ولا يريد أن تتحول الأرقام إلى مصاريف.",
+      "utterance": "سجل ملاحظة إن مقاس فلتر الشفاط خمسة وعشرين في خمسة وعشرين سنتي.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "note",
+            "title": "مقاس فلتر الشفاط"
+          }
+        ],
+        "outcome": "يحفظ المقاس ٢٥ × ٢٥ سنتيمتر داخل نص الملاحظة."
+      },
+      "note": "رقما المقاس لا يمثلان مبلغين أو تاريخًا، ولا ينشئ طلب شراء."
+    },
+    {
+      "id": "D059",
+      "domain": "memory",
+      "language": "ar",
+      "situation": "سيخرج بعد قليل ويريد أخذ شنطة التسوق القابلة لإعادة الاستخدام.",
+      "utterance": "فكرني بعد تلاتين دقيقة آخد شنطة التسوق القماش وأنا نازل.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "reminder",
+            "title": "آخد شنطة التسوق القماش",
+            "after_minutes": 30
+          }
+        ],
+        "outcome": "ينشئ تذكيرًا بعد ثلاثين دقيقة لأخذ الشنطة عند الخروج."
+      },
+      "note": "التوقيت نسبي محسوب من التاسعة صباحًا، ولا يحتاج معرفة عنوان البيت."
+    },
+    {
+      "id": "D060",
+      "domain": "memory",
+      "language": "ar",
+      "situation": "يشير إلى مكان ركن سابق لم يحدده في الرسالة الحالية.",
+      "utterance": "احفظ مكان العربية زي آخر مرة كنت قلتلك عليها.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "يحفظ الطلب للمراجعة ويسأل عن المكان بدل اختراع مكان من ذاكرة غير متاحة.",
+        "question": "العربية راكنة فين بالضبط، أو تقصد أنهي ملاحظة قديمة؟",
+        "pending_actions": [
+          {
+            "kind": "note",
+            "title": "مكان ركن العربية"
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "مرجع «آخر مرة» غير محدد؛ لا يفترض وجود سياق سابق موثوق."
+    },
+    {
+      "id": "D061",
+      "domain": "memory",
+      "language": "mixed",
+      "situation": "قرأ تعليمات الضمان ويريد حفظ المعلومة دون إنشاء موعد انتهاء.",
+      "utterance": "احفظ note إن warranty بتاعة الخلاط محتاجة الـ receipt الأصلي، وصورة الفاتورة لوحدها مش كفاية.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "note",
+            "title": "مستندات ضمان الخلاط"
+          }
+        ],
+        "outcome": "يحفظ اشتراط الإيصال الأصلي كما قاله المستخدم، دون استنتاج تاريخ انتهاء للضمان."
+      },
+      "note": "هذه ملاحظة من المستخدم وليست تحققًا قانونيًا أو تأكيدًا لشروط الشركة."
+    },
+    {
+      "id": "D062",
+      "domain": "memory",
+      "language": "mixed",
+      "situation": "الغسالة شغالة ويريد تنبيهًا واضحًا بالمدة.",
+      "utterance": "Remind me بعد 45 minutes أطلع الغسيل من الغسالة.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "reminder",
+            "title": "أطلع الغسيل من الغسالة",
+            "after_minutes": 45
+          }
+        ],
+        "outcome": "ينشئ تنبيهًا بعد خمس وأربعين دقيقة لإخراج الغسيل."
+      },
+      "note": "لا يشغّل جهازًا منزليًا ولا يضيف تكرارًا تلقائيًا."
+    },
+    {
+      "id": "D063",
+      "domain": "memory",
+      "language": "mixed",
+      "situation": "وصلته معلومة عن مكان اجتماع نادي القراءة، وليس موعدًا جديدًا.",
+      "utterance": "احفظ note إن book club meeting الشهر ده online مش في المكتبة.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "note",
+            "title": "مكان اجتماع نادي القراءة"
+          }
+        ],
+        "outcome": "يحفظ أن الاجتماع أونلاين بدل المكتبة فقط؛ لا ينشئ حدث تقويم بلا تاريخ ووقت."
+      },
+      "note": "كلمة meeting داخل طلب حفظ ملاحظة لا تكفي لإضافة موعد."
+    },
+    {
+      "id": "D064",
+      "domain": "memory",
+      "language": "mixed",
+      "situation": "يحدد مكان العربية لكن يطلب ربطه بمشروع سابق مجهول الاسم.",
+      "utterance": "احفظ parking note إن العربية في B2 صف 6، في نفس الـ project اللي فتحناه امبارح.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "يحتفظ بالمكان B2 صف 6 ويسأل عن اسم المشروع قبل ربط الملاحظة به.",
+        "question": "اسم المشروع اللي تحب أربط بيه ملاحظة ركن العربية إيه؟",
+        "pending_actions": [
+          {
+            "kind": "note",
+            "title": "مكان العربية في B2 صف 6"
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "لا يختار أحدث مشروع أو مشروعًا اسمه مشابه بناءً على تخمين."
+    },
+    {
+      "id": "D065",
+      "domain": "memory",
+      "language": "en",
+      "situation": "يريد تذكر مكان قطعة غيار منزلية بوضوح.",
+      "utterance": "Remember that the spare water filter is in the lower kitchen cabinet behind the cleaning basket.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "note",
+            "title": "Spare water filter location"
+          }
+        ],
+        "outcome": "يحفظ مكان فلتر المياه الاحتياطي كما ذُكر، دون إنشاء مهمة تنظيف أو قائمة مشتريات."
+      },
+      "note": "لا توجد نية تذكير بزمن؛ لا يخترع تنبيهًا."
+    },
+    {
+      "id": "D066",
+      "domain": "memory",
+      "language": "en",
+      "situation": "يريد تجهيز إعادة التدوير مساء الغد في توقيت صريح.",
+      "utterance": "Remind me tomorrow at 6 PM to put the recycling by the door.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "reminder",
+            "title": "Put the recycling by the door",
+            "due_local": "2026-10-27T18:00:00+03:00"
+          }
+        ],
+        "outcome": "ينشئ تذكيرًا الثلاثاء ٢٧ أكتوبر الساعة السادسة مساءً بتوقيت القاهرة."
+      },
+      "note": "يحافظ على الفرق بين السادسة صباحًا ومساءً ولا يضيف تكرارًا أسبوعيًا."
+    },
+    {
+      "id": "D067",
+      "domain": "project",
+      "language": "ar",
+      "situation": "يبدأ تنظيم تجديد بسيط للبلكونة من دون خطة جاهزة.",
+      "utterance": "اعمل مشروع جديد اسمه تجديد البلكونة، من غير مهام دلوقتي.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "create_project",
+            "title": "تجديد البلكونة"
+          }
+        ],
+        "outcome": "ينشئ مشروعًا فارغًا بالاسم المذكور فقط؛ يسجل هذا كمتطلب منتج إن لم تتوفر إدارة المشاريع الحقيقية."
+      },
+      "note": "لا يستبدل إنشاء المشروع بملاحظة ولا يخترع قائمة أعمال أو ميزانية."
+    },
+    {
+      "id": "D068",
+      "domain": "project",
+      "language": "ar",
+      "situation": "عنده مشروع ميزانية البيت ويريد إضافة مهمة واحدة إليه.",
+      "utterance": "ضيف مهمة أراجع فاتورة الكهربا لمشروع ميزانية البيت.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "task",
+            "title": "أراجع فاتورة الكهربا",
+            "collection": "ميزانية البيت"
+          }
+        ],
+        "outcome": "يضيف مهمة مراجعة الفاتورة داخل مشروع ميزانية البيت دون مبلغ أو موعد غير مذكور."
+      },
+      "note": "مراجعة فاتورة ليست تسجيل مصروف ولا دفعًا لها."
+    },
+    {
+      "id": "D069",
+      "domain": "project",
+      "language": "ar",
+      "situation": "يريد حفظ ملاحظة بحث قبل شراء قطعة للسيارة.",
+      "utterance": "سجل ملاحظة في مشروع صيانة العربية: لازم أقارن سعر فلتر الزيت قبل ما أشتريه.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "note",
+            "title": "مقارنة سعر فلتر الزيت",
+            "collection": "صيانة العربية"
+          }
+        ],
+        "outcome": "يحفظ النص كملاحظة بالمشروع المحدد، دون مصروف أو طلب شراء."
+      },
+      "note": "نية الشراء المستقبلية لا تعني أن مبلغًا دُفع بالفعل."
+    },
+    {
+      "id": "D070",
+      "domain": "project",
+      "language": "ar",
+      "situation": "ينشئ مساحة لرحلة عائلية ولم يختر موعدًا أو مكانًا بعد.",
+      "utterance": "افتح مشروع جديد اسمه خروجة العيلة، ولسه ما حددتش المكان ولا اليوم.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "create_project",
+            "title": "خروجة العيلة"
+          }
+        ],
+        "outcome": "ينشئ مشروع خروجة العيلة فقط، ويترك المكان والموعد غير محددين."
+      },
+      "note": "لا يحوّل كلمة خروجة إلى حجز أو موعد تقويم افتراضي."
+    },
+    {
+      "id": "D071",
+      "domain": "project",
+      "language": "mixed",
+      "situation": "يقارن تجهيزات مكتبه المنزلي ضمن مشروع معروف.",
+      "utterance": "Add task أقارن مقاس المكتب بالمساحة المتاحة to project Home Office.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "task",
+            "title": "أقارن مقاس المكتب بالمساحة المتاحة",
+            "collection": "Home Office"
+          }
+        ],
+        "outcome": "يضيف مهمة مقارنة المقاس إلى مشروع Home Office مع إبقاء المحتوى الأصلي المختلط."
+      },
+      "note": "لا يضيف مهمة شراء مكتب أو تكلفة لم يطلبها المستخدم."
+    },
+    {
+      "id": "D072",
+      "domain": "project",
+      "language": "mixed",
+      "situation": "أملى مهمة واضحة لكنه لم يسم المشروع المشار إليه.",
+      "utterance": "ضيف task أبعت الـ design brief للـ project ده.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "يحتفظ بالمهمة ويسأل عن اسم المشروع المقصود قبل ربطها أو إرسال أي شيء.",
+        "question": "تقصد أنهي مشروع عشان أضيف له مهمة إرسال الـ design brief؟",
+        "pending_actions": [
+          {
+            "kind": "task",
+            "title": "أبعت design brief"
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "«المشروع ده» مرجع ناقص، وإرسال مستند ليس مفوضًا للتطبيق تلقائيًا."
+    },
+    {
+      "id": "D073",
+      "domain": "project",
+      "language": "mixed",
+      "situation": "يحفظ تقدير تكلفة لمشروع تجديد، ولم يدفع المبلغ بعد.",
+      "utterance": "في project Kitchen refresh احفظ note إن عرض الدهان المتوقع 1500 EGP ولسه ما دفعتش حاجة.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "note",
+            "title": "عرض سعر الدهان المتوقع",
+            "collection": "Kitchen refresh"
+          }
+        ],
+        "outcome": "يحفظ عرض السعر كتقدير داخل المشروع فقط، ولا يسجله مصروفًا."
+      },
+      "note": "وجود عملة ورقم مع نفي الدفع لا يبرر قيدًا ماليًا."
+    },
+    {
+      "id": "D074",
+      "domain": "project",
+      "language": "mixed",
+      "situation": "يريد مشروعًا جديدًا خاليًا من القوالب والاقتراحات.",
+      "utterance": "Create a new project called Reading Corner وخليه فاضي لحد ما أضيف له حاجاتي بنفسي.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "create_project",
+            "title": "Reading Corner"
+          }
+        ],
+        "outcome": "ينشئ مشروع Reading Corner فارغًا فقط، بلا مهام أو مواعيد مولدة."
+      },
+      "note": "لو الإنشاء غير مدعوم، يصرح بالفجوة بدل الادعاء بأن ملاحظة هي مشروع حقيقي."
+    },
+    {
+      "id": "D075",
+      "domain": "project",
+      "language": "en",
+      "situation": "يضيف مهمة رعاية للنباتات مع موعد صريح داخل مشروع موجود.",
+      "utterance": "Add a task called Check the balcony plants to project Garden, due tomorrow at 9 AM.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "task",
+            "title": "Check the balcony plants",
+            "collection": "Garden",
+            "due_local": "2026-10-27T09:00:00+03:00"
+          }
+        ],
+        "outcome": "يضيف المهمة إلى Garden بموعد صباح الثلاثاء ٢٧ أكتوبر الساعة التاسعة."
+      },
+      "note": "موعد المهمة لا يفرض تنبيهًا منفصلًا أو تكرارًا يوميًا ما لم يُطلب ذلك."
+    },
+    {
+      "id": "D076",
+      "domain": "project",
+      "language": "en",
+      "situation": "يشير إلى مشروع من نقاش سابق من غير اسم يمكن الاعتماد عليه.",
+      "utterance": "Save a note that I prefer a matte finish to the project we discussed yesterday.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "يحتفظ بالملاحظة ويسأل أي مشروع يقصده، ولا يختار مشروعًا اعتمادًا على حداثته.",
+        "question": "اسم المشروع اللي تقصده من نقاش امبارح إيه؟",
+        "pending_actions": [
+          {
+            "kind": "note",
+            "title": "Prefer a matte finish"
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "الإشارة إلى نقاش الأمس لا تعتبر هوية مشروع صالحة."
+    },
+    {
+      "id": "D077",
+      "domain": "idea",
+      "language": "ar",
+      "situation": "جاءته فكرة أثناء المشي ويريد التقاطها بسرعة فقط.",
+      "utterance": "عندي فكرة لرف صغير في مدخل البيت نحط عليه الحاجات اللي بننساها وإحنا نازلين، احفظها.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "note",
+            "title": "رف للحاجات المهمة عند المدخل"
+          }
+        ],
+        "outcome": "يحفظ الفكرة كملاحظة دون إنشاء مشروع أو قائمة مشتريات أو خطوات تنفيذ."
+      },
+      "note": "التقاط فكرة لا يعني تفويض تطويرها أو تقدير تكلفتها."
+    },
+    {
+      "id": "D078",
+      "domain": "idea",
+      "language": "ar",
+      "situation": "لاحظ احتياجًا في العمارة ويريد تذكره لاحقًا.",
+      "utterance": "سجل فكرة: لوحة بسيطة عند مدخل العمارة لتبادل الكتب بين الجيران.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "note",
+            "title": "لوحة لتبادل الكتب بين الجيران"
+          }
+        ],
+        "outcome": "يحفظ نص الفكرة كما هو فقط، دون مراسلة الجيران أو تحديد موعد اجتماع."
+      },
+      "note": "لا يستنتج جمهورًا تفصيليًا أو خطة إطلاق من مجرد وصف الفكرة."
+    },
+    {
+      "id": "D079",
+      "domain": "idea",
+      "language": "ar",
+      "situation": "يطلب تطوير فكرة خدمة لكنه لم يحدد المستخدم المستهدف.",
+      "utterance": "ساعدني أطور فكرة خدمة بتجمع المشاوير الصغيرة في مشوار واحد.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "يفرق بين حفظ الفكرة وتطويرها، ويبدأ بسؤال عن الجمهور والمشكلة الأساسية دون اختراع خطة.",
+        "question": "مين أول ناس هتستخدم الخدمة، وإيه أكتر مشكلة في المشاوير عايز تحلها لهم؟",
+        "pending_actions": [
+          {
+            "kind": "develop_idea",
+            "title": "خدمة لتجميع المشاوير الصغيرة"
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "تطوير الأفكار قدرة مطلوبة مستقلة؛ لا يصح الادعاء بأن التفريغ أو قواعد الكلمات قامت بها."
+    },
+    {
+      "id": "D080",
+      "domain": "idea",
+      "language": "ar",
+      "situation": "فكر في أداة للتذكر ويريد مساعدة تفكير فعلية قبل التنفيذ.",
+      "utterance": "عايزك تساعدني أطور فكرة مفكرة صوتية بتفكر الناس بالحاجات اللي بتضيع منهم طول اليوم.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "يطلب تحديد أول فئة مستخدمين وموقف النسيان الأهم، ولا ينشئ مهام أو ميزانية من عنده.",
+        "question": "مين المستخدم الأول للمفكرة، وإيه موقف النسيان اللي محتاج نركز عليه؟",
+        "pending_actions": [
+          {
+            "kind": "develop_idea",
+            "title": "مفكرة صوتية للأشياء التي تُنسى خلال اليوم"
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "لا يعرض خطة مولدة أو ادعاء ذكاء اصطناعي عام إن كانت القدرة غير متوفرة."
+    },
+    {
+      "id": "D081",
+      "domain": "idea",
+      "language": "mixed",
+      "situation": "يريد تدوين فكرة تصميم سريعة من غير تحويلها إلى مهام.",
+      "utterance": "Save this idea: a QR label على كل علبة تخزين يفتح note بمحتوياتها.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "note",
+            "title": "QR labels for storage boxes"
+          }
+        ],
+        "outcome": "يحفظ فكرة الملصقات كملاحظة فقط؛ لا يولد رموزًا أو يضيف مشتريات تلقائيًا."
+      },
+      "note": "المزج بين اللغتين لا يغير نوع الطلب من حفظ فكرة إلى تنفيذ مشروع."
+    },
+    {
+      "id": "D082",
+      "domain": "idea",
+      "language": "mixed",
+      "situation": "سمّى مجموعة الأفكار صراحة ويريد وضع فكرة بداخلها.",
+      "utterance": "احفظ في Ideas: offline map للأماكن اللي ينفع أشتغل منها بهدوء من غير إنترنت.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "note",
+            "title": "offline map للأماكن اللي أشتغل منها بهدوء",
+            "collection": "Ideas"
+          }
+        ],
+        "outcome": "يحفظ الفكرة داخل المجموعة المسماة Ideas دون جلب مواقع أو اقتراح أماكن فعلية."
+      },
+      "note": "اسم المجموعة مأخوذ من كلام المستخدم، وليس تصنيفًا اخترعه التطبيق."
+    },
+    {
+      "id": "D083",
+      "domain": "idea",
+      "language": "mixed",
+      "situation": "يفكر في تطبيق لتنظيم الأكل لكنه يحتاج توضيح المشكلة قبل تطوير الحل.",
+      "utterance": "ساعدني develop فكرة meal-planning app للناس اللي بترجع من الشغل متأخر.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "يسأل عن الصعوبة المحددة لهذه الفئة قبل اقتراح مميزات أو خطوات تنفيذ.",
+        "question": "أكبر مشكلة عند الناس دي إيه: اختيار الأكل ولا الوقت ولا تجهيز المكونات؟",
+        "pending_actions": [
+          {
+            "kind": "develop_idea",
+            "title": "meal-planning app للناس اللي بترجع من الشغل متأخر"
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "الجمهور مذكور مبدئيًا لكن المشكلة غير محددة؛ لا يخترع تفضيلات غذائية أو خطة شراء."
+    },
+    {
+      "id": "D084",
+      "domain": "idea",
+      "language": "mixed",
+      "situation": "يشير إلى فكرة سابقة غير معرّفة ويطلب إكمال التفكير فيها.",
+      "utterance": "كمل develop للفكرة دي اللي كنت كاتبها امبارح.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "يسأل أي فكرة يقصدها ويطلب نصها أو عنوانها قبل أي تطوير.",
+        "question": "تقصد أنهي فكرة؟ ابعت عنوانها أو نصها عشان نحدد المشكلة اللي هنعمل عليها.",
+        "pending_actions": [
+          {
+            "kind": "develop_idea"
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "مرجع «الفكرة دي» لا يسمح باستدعاء محتوى غير موجود أو اختلاق سياق سابق."
+    },
+    {
+      "id": "D085",
+      "domain": "idea",
+      "language": "en",
+      "situation": "يريد حفظ اقتراح مجتمعي بسيط دون بدء التنفيذ.",
+      "utterance": "Save an idea for a neighborhood shelf where people can borrow small tools instead of buying them.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "note",
+            "title": "Neighborhood tool-sharing shelf"
+          }
+        ],
+        "outcome": "يحفظ الفكرة فقط، دون إنشاء مشروع أو الاتصال بأحد أو تقدير تمويل."
+      },
+      "note": "حفظ الفكرة لا يتضمن تفويضًا للنشر أو التطوير التلقائي."
+    },
+    {
+      "id": "D086",
+      "domain": "idea",
+      "language": "en",
+      "situation": "يريد تطوير فكرة منتج ولم يحدد المستخدم أو المشكلة بعد.",
+      "utterance": "Help me develop an app that groups voice notes into useful daily collections.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "يوضح أن الطلب تطوير فكرة، ويسأل عن المستخدم والمشكلة قبل تقديم تصور.",
+        "question": "مين المستخدم الأول للتطبيق، وإيه أكتر مشكلة في ملاحظاته الصوتية عايز تحلها؟",
+        "pending_actions": [
+          {
+            "kind": "develop_idea",
+            "title": "Voice notes organized into daily collections"
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "لا يحول هذا الطلب إلى ملاحظة عادية ثم يدعي أنه طور المنتج."
+    },
+    {
+      "id": "D087",
+      "domain": "home_recipe",
+      "language": "ar",
+      "situation": "يجهز احتياجات منزلية ليست أكلًا وذكر الكميات بوضوح.",
+      "utterance": "ضيف لقائمة البيت لمبتين موفرين وكيس زبالة كبير.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "shopping",
+            "title": "لمبتين موفرين",
+            "collection": "البيت"
+          },
+          {
+            "kind": "shopping",
+            "title": "كيس زبالة كبير",
+            "collection": "البيت"
+          }
+        ],
+        "outcome": "يضيف عنصرين منفصلين لقائمة البيت مع الحفاظ على الكمية والوصف لكل عنصر."
+      },
+      "note": "هذه مشتريات مستقبلية، وليست مصروفًا ولا طلب شراء تلقائيًا."
+    },
+    {
+      "id": "D088",
+      "domain": "home_recipe",
+      "language": "ar",
+      "situation": "يملي وصفة بسيطة قال مكوناتها وخطواتها فقط.",
+      "utterance": "سجل وصفة سلطة خيار: المكونات خيارتين وعلبة زبادي ورشة ملح. الطريقة قطع الخيار، وبعدها قلبه مع الزبادي والملح.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "recipe",
+            "title": "سلطة خيار",
+            "ingredients": [
+              "خيارتين",
+              "علبة زبادي",
+              "رشة ملح"
+            ],
+            "steps": [
+              "قطع الخيار",
+              "قلبه مع الزبادي والملح"
+            ]
+          }
+        ],
+        "outcome": "يحفظ وصفة سلطة الخيار بالمكونات الثلاثة والخطوتين المذكورتين دون إضافات."
+      },
+      "note": "لا يضيف ثومًا أو ليمونًا أو مقادير أو عدد حصص لم يقلها المستخدم."
+    },
+    {
+      "id": "D089",
+      "domain": "home_recipe",
+      "language": "mixed",
+      "situation": "عنده مكونات وصفة لكنه لم يحدد طريقة التحضير بعد.",
+      "utterance": "Save recipe overnight oats: ingredients شوفان ولبن وقطع موز، ولسه هقولك الـ steps بعدين.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "recipe",
+            "title": "Overnight oats",
+            "ingredients": [
+              "شوفان",
+              "لبن",
+              "قطع موز"
+            ],
+            "steps": []
+          }
+        ],
+        "outcome": "يحفظ اسم الوصفة والمكونات فقط، ويترك الخطوات فارغة بوضوح."
+      },
+      "note": "لا يولد خطوات نقع أو وقت تبريد أو كميات من معلومات عامة عن الوصفة."
+    },
+    {
+      "id": "D090",
+      "domain": "home_recipe",
+      "language": "mixed",
+      "situation": "يضيف احتياجات أكل مستقبلية لقائمة مسماة بالإنجليزية.",
+      "utterance": "ضيف milk وعلبتين yogurt وعيش بلدي لقائمة Groceries، لسه هشتريهم.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "shopping",
+            "title": "milk",
+            "collection": "Groceries"
+          },
+          {
+            "kind": "shopping",
+            "title": "علبتين yogurt",
+            "collection": "Groceries"
+          },
+          {
+            "kind": "shopping",
+            "title": "عيش بلدي",
+            "collection": "Groceries"
+          }
+        ],
+        "outcome": "يضيف ثلاثة عناصر لقائمة Groceries، مع إبقاء علبتين yogurt عنصرًا بكمية اثنين."
+      },
+      "note": "التأكيد أنه سيشتريها يمنع تفسيرها كمصاريف مدفوعة."
+    },
+    {
+      "id": "D091",
+      "domain": "home_recipe",
+      "language": "mixed",
+      "situation": "ينظم صيانة منزلية ويريد مهمة وتذكيرًا صريحًا مرتبطًا بنفس العمل.",
+      "utterance": "ضيف task أنضف فلتر التكييف لمشروع Home، وRemind me أنضف الفلتر يوم الأربعاء الساعة 7:30 PM.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "task",
+            "title": "أنضف فلتر التكييف",
+            "collection": "Home"
+          },
+          {
+            "kind": "reminder",
+            "title": "أنضف فلتر التكييف",
+            "due_local": "2026-10-28T19:30:00+03:00"
+          }
+        ],
+        "outcome": "ينشئ مهمة في Home وتذكيرًا مساء الأربعاء ٢٨ أكتوبر الساعة السابعة والنصف دون تكرار."
+      },
+      "note": "النية هنا مركبة وصريحة؛ لا يسقط أحد الجزأين ولا يكرر نفس التذكير عند إعادة المعالجة."
+    },
+    {
+      "id": "D092",
+      "domain": "home_recipe",
+      "language": "en",
+      "situation": "يحفظ وصفة مشروب ذكر مكوناته وطريقة إعداده دون وقت أو سكر.",
+      "utterance": "Save a recipe for lemon mint drink. Ingredients: one lemon, a cup of water, mint leaves. Steps: blend everything, then strain into a glass.",
+      "expected": {
+        "mode": "auto",
+        "actions": [
+          {
+            "kind": "recipe",
+            "title": "Lemon mint drink",
+            "ingredients": [
+              "one lemon",
+              "a cup of water",
+              "mint leaves"
+            ],
+            "steps": [
+              "blend everything",
+              "strain into a glass"
+            ]
+          }
+        ],
+        "outcome": "يحفظ الوصفة بالمكونات والخطوتين المذكورتين فقط."
+      },
+      "note": "لا يضيف سكرًا أو ثلجًا أو وقت خلط أو عدد حصص من عنده."
+    },
+    {
+      "id": "D093",
+      "domain": "safety",
+      "language": "ar",
+      "situation": "ينفي تسجيل مبلغ ويشير إلى قيد سابق غير محدد يريد التراجع عنه إن وُجد.",
+      "utterance": "متسجلش السبعين جنيه دول، ولو كنت سجلتهم قبل كده الغي المصروف ده.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "لا يسجل مصروفًا جديدًا ولا يحذف أي قيد؛ يطلب تحديد المصروف المقصود قبل التراجع.",
+        "question": "تقصد أنهي مصروف مسجل قبل كده؟ حدد عنوانه أو تاريخه عشان نراجعه قبل الإلغاء.",
+        "pending_actions": [
+          {
+            "kind": "modify",
+            "title": "إلغاء مصروف سابق غير محدد"
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "النفي مع الإشارة إلى قيد سابق لا يكفي لتحديد عنصر مالي يمكن حذفه."
+    },
+    {
+      "id": "D094",
+      "domain": "safety",
+      "language": "ar",
+      "situation": "ذكر الخامسة غدًا من غير صباح أو مساء.",
+      "utterance": "فكرني بكرة الساعة خمسة أستلم الطرد.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "يحتفظ بطلب التذكير ويسأل هل الخامسة صباحًا أم مساءً دون جدولة تخمينية.",
+        "question": "تقصد الساعة خمسة الصبح ولا خمسة مساءً بكرة؟",
+        "pending_actions": [
+          {
+            "kind": "reminder",
+            "title": "أستلم الطرد"
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "لا يستعمل وقتًا افتراضيًا ولا يفترض مساءً لأن الاستلام غالبًا نهاري."
+    },
+    {
+      "id": "D095",
+      "domain": "safety",
+      "language": "ar",
+      "situation": "أملى مصروفًا بمبلغ واضح من غير ذكر العملة.",
+      "utterance": "سجل مصروف مية وخمسين على تصليح الكرسي.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "يسأل عن العملة قبل حفظ المصروف، ويحتفظ بالمبلغ المنطوق من غير افتراض الجنيه.",
+        "question": "المية وخمسين بأي عملة؟",
+        "pending_actions": [
+          {
+            "kind": "expense",
+            "title": "تصليح الكرسي",
+            "amount_text": "150"
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "مكان المستخدم أو عملته المعتادة لا يكفيان لتخمين عملة عملية محددة."
+    },
+    {
+      "id": "D096",
+      "domain": "safety",
+      "language": "mixed",
+      "situation": "حدد رقم يوم ومدة اجتماع لكن لم يحدد الشهر أو السنة.",
+      "utterance": "حط calendar meeting لمراجعة العقد يوم 5 الساعة 3 PM لمدة 30 minutes.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "يسأل أي شهر وسنة يقصدهما يوم خمسة قبل إنشاء حدث التقويم.",
+        "question": "يوم 5 في أنهي شهر وسنة للاجتماع؟",
+        "pending_actions": [
+          {
+            "kind": "calendar",
+            "title": "مراجعة العقد",
+            "duration_minutes": 30
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "لا يختار أقرب يوم خامس تلقائيًا من مرجع ناقص."
+    },
+    {
+      "id": "D097",
+      "domain": "safety",
+      "language": "mixed",
+      "situation": "يريد تذكيرًا عند الوصول لمكان عام لم يحدد موقعه الفعلي.",
+      "utterance": "لما أوصل السوبرماركت Remind me أجيب أكياس تخزين.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "حفظ الطلب وسؤال المستخدم عن الموقع، مع توضيح أن تذكيرات الوصول تحتاج قدرة موقع وصلاحية غير موجودتين حاليًا؛ لا يُجدول تنبيه زمني بديل.",
+        "question": "تذكيرات الوصول غير مدعومة حاليًا. أنهي سوبرماركت تقصده لتوثيق المطلوب، وهل تفضل تذكيرًا بوقت محدد بدلًا منها؟",
+        "pending_actions": [
+          {
+            "kind": "location_reminder",
+            "title": "أجيب أكياس تخزين"
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "تذكير المكان فجوة منتج إن لم يكن مدعومًا؛ لا يستبدله بتنبيه زمني عشوائي ولا يطلب تتبعًا صامتًا."
+    },
+    {
+      "id": "D098",
+      "domain": "safety",
+      "language": "mixed",
+      "situation": "يطلب تعديل موعد عنصر لم يذكر اسمه ولا مشروعه.",
+      "utterance": "غيّر deadline بتاع الـ task ده لبكرة الصبح في نفس الـ project.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "لا يعدل شيئًا؛ يسأل عن المهمة والمشروع والوقت المحدد بدل التخمين من الشاشة الأخيرة.",
+        "question": "تقصد أنهي مهمة في أنهي مشروع، وعايز موعدها بكرة الساعة كام؟",
+        "pending_actions": [
+          {
+            "kind": "modify"
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "مرجع المهمة والمشروع ولفظ الصبح كلهم غير كافيين لإجراء تعديل تلقائي."
+    },
+    {
+      "id": "D099",
+      "domain": "safety",
+      "language": "en",
+      "situation": "يسأل إن كان مصروف قد سُجل بالفعل ولا يصدر أمرًا بإنشاء مصروف جديد.",
+      "utterance": "Did I already record the taxi expense from that trip?",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "يتعامل مع الكلام كسؤال عن سجل سابق، ويسأل عن الرحلة أو التاريخ لتحديده دون إضافة مصروف.",
+        "question": "تقصد أنهي رحلة أو تاريخ عشان نبحث عن مصروف التاكسي؟",
+        "pending_actions": [
+          {
+            "kind": "find_expense",
+            "title": "Taxi expense"
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "الاستفهام عن مصروف لا يعني تسجيله مرة أخرى، ومرجع تلك الرحلة غير محدد."
+    },
+    {
+      "id": "D100",
+      "domain": "safety",
+      "language": "en",
+      "situation": "يعطي تاريخًا ثم ينفيه داخل نفس طلب الموعد.",
+      "utterance": "Schedule a 30-minute repair visit tomorrow at 10 AM, but it must not be tomorrow. It is the same visit.",
+      "expected": {
+        "mode": "clarify",
+        "actions": [],
+        "outcome": "يكشف تعارض التاريخ ويسأل عن اليوم الصحيح قبل إنشاء أي حدث.",
+        "question": "الزيارة تكون أنهي يوم بالضبط؟ قلت بكرة وبعدين نفيت إن الموعد بكرة.",
+        "pending_actions": [
+          {
+            "kind": "calendar",
+            "title": "Repair visit",
+            "duration_minutes": 30
+          }
+        ],
+        "executed_actions": []
+      },
+      "note": "لا ينشئ زيارتين ولا يختار آخر عبارة أو أول عبارة من دون تأكيد."
+    }
+  ]
+}

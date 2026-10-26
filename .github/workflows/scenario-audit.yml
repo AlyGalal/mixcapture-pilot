@@ -1,0 +1,31 @@
+name: Audit daily life scenarios
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: macos-26
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Evaluate production parser on 100 synthetic scenarios
+        run: |
+          set -euo pipefail
+          mkdir -p build/scenario-audit
+          swiftc -parse-as-library MixCapture/LocalItems.swift MixCapture/Organizer.swift scripts/ScenarioAudit.swift -o build/scenario-audit/audit
+          build/scenario-audit/audit Scenarios/daily-life.json build/scenario-audit/results.json | tee build/scenario-audit/summary.log
+          python3 scripts/render-scenarios.py build/scenario-audit/results.json build/scenario-audit/report.html
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: daily-scenario-audit
+          path: |
+            build/scenario-audit/results.json
+            build/scenario-audit/report.html
+            build/scenario-audit/summary.log
+          if-no-files-found: error
+          retention-days: 14
