@@ -6,7 +6,7 @@ import CoreTransferable
 private struct OrganizerBackup: Transferable {
     let contents: String
     static var transferRepresentation: some TransferRepresentation {
-        DataRepresentation(exportedContentType: .json) { Data($0.contents.utf8) }
+        DataRepresentation(exportedContentType: .json) { (backup: OrganizerBackup) in Data(backup.contents.utf8) }
             .suggestedFileName("MixCapture-backup.json")
     }
 }

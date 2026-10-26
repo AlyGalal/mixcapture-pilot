@@ -401,6 +401,7 @@ private enum Rx {
     static let pronouns: Set<String> = ["بيه", "بيها", "به", "بها", "ده", "دي", "عليه", "عليها", "it", "about it", "that", "this"]
 }
 
+// ponytail: bounded phrase grammar; add rules from failing examples, keep unknown language in review.
 private struct PhraseParser {
     let now: Date
     let calendar: Calendar
@@ -953,6 +954,16 @@ extension LocalItemsSnapshot {
         -> (snapshot: LocalItemsSnapshot, receipt: OrganizationReceipt, reminderIDs: [UUID])? {
         guard receipt(for: sourceID) == nil else { return nil }
         var next = self
+        let existingSource = (library ?? []).contains { $0.sourceCaptureID == sourceID } ||
+            expenses.contains { $0.sourceCaptureID == sourceID } || reminders.contains { $0.sourceCaptureID == sourceID } ||
+            (reviewQueue ?? []).contains { $0.sourceCaptureID == sourceID }
+        if existingSource {
+            let receipt = OrganizationReceipt(id: sourceID, createdAt: now,
+                summary: "هذا المصدر له عناصر محفوظة بالفعل؛ لم نضف نسخًا مكررة.", status: receiptLine(for: sourceID).status,
+                originalText: drafts.first?.body)
+            next.organizationReceipts = (next.organizationReceipts ?? []) + [receipt]
+            return (next, receipt, [])
+        }
         var reminderIDs: [UUID] = []
         for var draft in drafts {
             draft.sourceCaptureID = sourceID
@@ -982,6 +993,9 @@ extension LocalItemsSnapshot {
             throw LocalItemsError.notFound
         }
         let stored = queue[index]
+        guard !(library ?? []).contains(where: { $0.id == stored.id }),
+              !expenses.contains(where: { $0.id == stored.id }),
+              !reminders.contains(where: { $0.id == stored.id }) else { throw LocalItemsError.notFound }
         var draft = edited
         draft.body = stored.body
         draft.sourceCaptureID = stored.sourceCaptureID
@@ -1021,6 +1035,8 @@ extension LocalItemsSnapshot {
     /// Additive by UUID; existing records win on collision. Rejects the whole import if any record
     /// is invalid. Imported reminders are not scheduled on this device, so they become pending.
     func merging(_ incoming: LocalItemsSnapshot) throws -> LocalItemsSnapshot {
+        let occupied = Set(expenses.map(\.id) + reminders.map(\.id) +
+                           (library ?? []).map(\.id) + (reviewQueue ?? []).map(\.id))
         func allowed(_ sourceID: UUID?) -> Bool {
             guard let sourceID else { return true }
             return receipt(for: sourceID)?.status != .undone
@@ -1031,6 +1047,11 @@ extension LocalItemsSnapshot {
         guard unique(incoming.expenses), unique(incoming.reminders), unique(incoming.library ?? []),
               unique(incoming.reviewQueue ?? []), unique(incoming.organizationReceipts ?? []) else {
             throw LocalItemsError.invalidBackup("معرّفات مكررة")
+        }
+        let incomingIDs = incoming.expenses.map(\.id) + incoming.reminders.map(\.id) +
+            (incoming.library ?? []).map(\.id) + (incoming.reviewQueue ?? []).map(\.id)
+        guard Set(incomingIDs).count == incomingIDs.count else {
+            throw LocalItemsError.invalidBackup("معرّف مستخدم لأكثر من عنصر")
         }
         for item in incoming.expenses where item.amountMinorUnits <= 0 || isBlank(item.title) {
             throw LocalItemsError.invalidBackup("مصروف \(item.id.uuidString)")
@@ -1054,8 +1075,8 @@ extension LocalItemsSnapshot {
             throw LocalItemsError.invalidBackup("مراجعة \(draft.id.uuidString)")
         }
         var next = self
-        next.expenses = appendingNew(expenses, incoming.expenses.filter { allowed($0.sourceCaptureID) })
-        next.reminders = appendingNew(reminders, incoming.reminders.filter { allowed($0.sourceCaptureID) }.map { reminder -> ReminderItem in
+        next.expenses = appendingNew(expenses, incoming.expenses.filter { !occupied.contains($0.id) && allowed($0.sourceCaptureID) })
+        next.reminders = appendingNew(reminders, incoming.reminders.filter { !occupied.contains($0.id) && allowed($0.sourceCaptureID) }.map { reminder -> ReminderItem in
             var copy = reminder
             copy.automaticSchedulingEligible = false
             if copy.status != .completed {
@@ -1065,7 +1086,7 @@ extension LocalItemsSnapshot {
             return copy
         })
         if library != nil || incoming.library != nil {
-            next.library = appendingNew(library ?? [], (incoming.library ?? []).filter { allowed($0.sourceCaptureID) }.map { item in
+            next.library = appendingNew(library ?? [], (incoming.library ?? []).filter { !occupied.contains($0.id) && allowed($0.sourceCaptureID) }.map { item in
                 var copy = item
                 copy.externalCalendarID = nil
                 copy.calendarSyncEligible = false
@@ -1073,7 +1094,7 @@ extension LocalItemsSnapshot {
             })
         }
         if reviewQueue != nil || incoming.reviewQueue != nil {
-            next.reviewQueue = appendingNew(reviewQueue ?? [], (incoming.reviewQueue ?? []).filter { allowed($0.sourceCaptureID) })
+            next.reviewQueue = appendingNew(reviewQueue ?? [], (incoming.reviewQueue ?? []).filter { !occupied.contains($0.id) && allowed($0.sourceCaptureID) })
         }
         if organizationReceipts != nil || incoming.organizationReceipts != nil {
             next.organizationReceipts = appendingNew(organizationReceipts ?? [], incoming.organizationReceipts ?? [])

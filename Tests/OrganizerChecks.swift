@@ -45,6 +45,13 @@ struct OrganizerChecks {
               "receipt retains source text independently of created actions")
         check(saved.applyingOrganization([note, expense, reminder], sourceID: source, now: now) == nil,
               "a committed source cannot duplicate any action")
+        var manualLegacy = LocalItemsSnapshot()
+        var legacyExpense = unrelated
+        legacyExpense.sourceCaptureID = source
+        manualLegacy.expenses = [legacyExpense]
+        let adopted = manualLegacy.applyingOrganization([expense], sourceID: source, now: now)
+        check(adopted?.snapshot.expenses == [legacyExpense] && adopted?.reminderIDs.isEmpty == true,
+              "legacy manual actions acquire a receipt without duplicate posting")
 
         let reviewSource = UUID()
         let invalidExpense = OrganizationDraft(kind: .expense, title: "Coffee", body: "paid too much?",
@@ -82,6 +89,9 @@ struct OrganizerChecks {
               reviewedExpense.date == storedDraft.createdAt, "review cannot forge original text, source, or creation time")
         check(reviewed.snapshot.reviewQueue?.count == 1, "review consumes only the applied draft")
         rejects("the same review cannot be applied twice") { _ = try reviewed.snapshot.applyingReview(edited, now: now) }
+        let olderReviewBackup = try reviewed.snapshot.merging(queued.snapshot)
+        check(olderReviewBackup.reviewQueue == reviewed.snapshot.reviewQueue && olderReviewBackup.expenses == reviewed.snapshot.expenses,
+              "older backup cannot resurrect an already-applied review draft")
 
         let undone = try reviewed.snapshot.undoingOrganization(sourceID: source)
         check(undone.removedReminderIDs == [reminder.id], "undo returns only this source's notification IDs")
