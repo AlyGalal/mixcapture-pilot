@@ -151,7 +151,7 @@ enum OrganizerParser {
             return [parser.review(.note, doc, text, "This may be a question or possibility. It was not executed as a command.")]
         }
         if let recipe = parser.recipe(doc, text) { return [recipe] }
-        if doc.has(Rx.negation) || doc.has(#"\?\s*$"#) {
+        if doc.has(Rx.negation) || doc.has(#"\?[\s\p{P}]*$"#) {
             return [parser.review(parser.classify(doc)?.kind ?? .note, doc, text,
                                   "This contains a negation or correction. Review the full source.")]
         }
@@ -346,8 +346,10 @@ private enum Rx {
     static let imperativeStart = #"^\s*(?:و|ف)?(?:(?:ضيف|حط|سجل|اعمل|ابعت|كلم|اتصل|روح|افتح|شغل|احجز|ادفع|هات|خلي|غير|عدل|اكتب|احفظ|شيل|امسح|نظم|رتب|جيب|دور|شوف|اطلب|حول|فكر|ذكر)\p{L}{0,3}|add|put|log|save|call|send|email|text|book|schedule|create|make|set|open|go|pay|tell|ask|check|get|order|delete|remove|cancel|move|change|update|transfer|remember|buy)(?![\p{L}\p{N}])"#
 
     static let project = b + #"(?:(?:لل|ل|في|علي|الي|تبع|to|for|in|under|on)\s*)?(?:the\s+)?(?:ال)?(?:مشروع|بروجكت|بروجيكت|project)\s+([^:\n]+?)\s*(?=:|\n|$)"#
-    static let arabicList = b + #"(?:(?:لل|ل|في|علي|الي)\s*)?(?:ال)?(?:قائمه|قايمه|ليسته|لسته)(?![\p{L}\p{N}])(?:\s+(?:ال)?(?:مشتريات|شراء|شرا|تسوق|حاجات|طلبات)(?![\p{L}\p{N}]))?(?:\s+([^\n]+?))?\s*$"#
-    static let englishList = b + #"(?:(?:to|on|in|into|في|علي|الي|لل|ل)[\sـ]*)?(?:the\s+|my\s+|ال[\sـ]*)?(?:shopping\s*|grocery\s*)?list(?:ه)?(?![\p{L}\p{N}])(?:\s+([^\n]+?))?\s*$"#
+    // Keep named captures greedy so punctuation in names such as C# stays intact.
+    static let listSentenceEnd = #"[\s.,!?;:…"'()]*$"#
+    static let arabicList = b + #"(?:(?:لل|ل|في|علي|الي)\s*)?(?:ال)?(?:قائمه|قايمه|ليسته|لسته)(?![\p{L}\p{N}])(?:\s+(?:ال)?(?:مشتريات|شراء|شرا|تسوق|حاجات|طلبات)(?![\p{L}\p{N}]))?(?:\s+([^\n]+))?"# + listSentenceEnd
+    static let englishList = b + #"(?:(?:to|on|in|into|في|علي|الي|لل|ل)[\sـ]*)?(?:the\s+|my\s+|ال[\sـ]*)?(?:shopping\s*|grocery\s*)?list(?:ه)?(?![\p{L}\p{N}])(?:\s+([^\n]+))?"# + listSentenceEnd
     static let newShoppingList = #"^\s*(?:(?:انا\s+)?(?:عايز|عاوزه|عاوز|عايزه|محتاج|محتاجه)\s+)?(?:ابتدي\s+)?(?:اعمل|انشئ|create|make)\s+(?:a\s+)?(?:new\s+)?(?:ال[\sـ]*)?(?:(?:shopping\s*|grocery\s*)?list(?:ه)?|قائمه|قايمه|ليسته|لسته)(?:\s+(?:جديده|جديد|new))?(?:\s+(?:اسمها|اسمه|باسم|named|called)\s+(.+?))?[\s,:]+(?:احط|اضيف|حط|ضيف|add|put)\s+(?:فيها|فيه|in\s+it|into\s+it)[\s,:]+"#
     static let purchaseTail = #"(?:\s*[,،.!؛;]\s*|\s+)(?:كل(?:ه)?\s+(?:ده|دا|دول)|(?:كل\s+)?الحاجات\s+دي)\s+(?:انا\s+)?(?:(?:عايز|عاوزه|عاوز|عايزه|ناوي)\s+)?(?:انزل\s+)?(?:(?:اشتري|هشتري)(?:ه|ها|هم)?|اجيب(?:ه|ها|هم)?)(?![\p{L}\p{N}])[\s\S]*$"#
     static let genericLists: Set<String> = ["المشتريات", "مشتريات", "الشراء", "التسوق", "الحاجات", "الطلبات", "shopping", "grocery"]
