@@ -54,6 +54,10 @@ struct OrganizerAdversarialChecks {
         automatic("فكرني بكرة الساعة عشرة الصبح أبعت review", kind: .reminder, due: tomorrowAtTen)
         automatic("remind me tomorrow at 10 AM to review budget", kind: .reminder, due: tomorrowAtTen)
         automatic("schedule a meeting tomorrow at 10 AM for 30 minutes", kind: .calendar, due: tomorrowAtTen)
+        automatic("حط في التقويم قراءة كتاب بكرة الساعة عشرة الصبح لمدة 30 دقيقة", kind: .calendar, due: tomorrowAtTen)
+        automatic("Add to calendar practice tomorrow at 10 AM for 30 minutes", kind: .calendar, due: tomorrowAtTen)
+        check(parse("احفظ ملاحظة: حط في التقويم وقت للقراءة").allSatisfy { $0.kind == .note },
+              "An explicit note frame must not become a calendar event")
         automatic("دفعت ١٢٠٫٥٠ جنيه في Uber", kind: .expense, amount: 12050)
         automatic("paid 120.50 EGP for Uber", kind: .expense, amount: 12050)
         automatic("سجل مصروف خمسين جنيه قهوة", kind: .expense, amount: 5000)
@@ -76,6 +80,9 @@ struct OrganizerAdversarialChecks {
         check(recipe.count == 1 && recipe.allSatisfy { !$0.requiresReview && $0.kind == .recipe },
               "Recipe instructions must stay in a recipe, not become separate actions")
         let englishRecipe = parse("recipe Lentil soup: ingredients lentils and onion. steps boil the lentils then blend")
+        let savedRecipe = parse("Save a recipe for Oat porridge. Ingredients: oats and milk. Steps: simmer then stir.")
+        check(savedRecipe.count == 1 && savedRecipe.first?.kind == .recipe && savedRecipe.first?.requiresReview == false
+              && savedRecipe.first?.title == "Oat porridge", "A natural English recipe request retains its recipe type and name")
         check(englishRecipe.count == 1 && englishRecipe.first?.kind == .recipe && englishRecipe.first?.requiresReview == false,
               "English recipe must organize automatically as one recipe")
         check(englishRecipe.first?.title == "Lentil soup" && englishRecipe.first?.ingredients == ["lentils", "onion"] &&

@@ -1544,6 +1544,7 @@ struct ReviewEditor: View {
 
     private var validation: String? {
         if draft.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "A title is required." }
+        if let message = newShoppingListValidation(draft, library: items.libraryItems) { return message }
         switch draft.kind {
         case .expense:
             if parseAmount(draft.amountText) == nil { return "Enter a valid amount with up to two decimal places." }
@@ -1572,7 +1573,8 @@ struct ReviewEditor: View {
                     ForEach(OrganizationKind.allCases) { Label($0.label, systemImage: $0.uiSymbol).tag($0) }
                 }
                 TextField("Title", text: $draft.title, axis: .vertical)
-                TextField("Collection or project (optional)", text: $draft.collection)
+                TextField(draft.kind == .shopping && draft.newShoppingListRequested == true ?
+                          "New shopping list name" : "Collection or project (optional)", text: $draft.collection)
             }
             Section("Original text") {
                 Text(draft.body).textSelection(.enabled)

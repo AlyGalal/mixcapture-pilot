@@ -12,6 +12,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Check routing and source-preserving organization
+        run: |
+          set -euo pipefail
+          mkdir -p build/scenario-audit
+          for suite in ShoppingRoutingChecks OrganizerChecks OrganizerAdversarialChecks LocalItemsChecks; do
+            swiftc -parse-as-library MixCapture/LocalItems.swift MixCapture/Organizer.swift "Tests/$suite.swift" -o "build/scenario-audit/$suite"
+            "build/scenario-audit/$suite" | tee "build/scenario-audit/$suite.log"
+          done
       - name: Evaluate production parser on 100 synthetic scenarios
         run: |
           set -euo pipefail
@@ -27,5 +35,6 @@ jobs:
             build/scenario-audit/results.json
             build/scenario-audit/report.html
             build/scenario-audit/summary.log
+            build/scenario-audit/*Checks.log
           if-no-files-found: error
           retention-days: 14

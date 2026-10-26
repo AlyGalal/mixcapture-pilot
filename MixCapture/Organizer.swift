@@ -87,6 +87,8 @@ struct OrganizationDraft: Codable, Identifiable, Equatable {
     /// Full original text, kept even when metadata was extracted.
     var body: String
     var collection: String = ""
+    /// Nil for legacy drafts. A newly requested list cannot silently merge into an old one.
+    var newShoppingListRequested: Bool? = nil
     var amountText: String = ""
     var currency: Currency = .EGP
     var category: ExpenseCategory = .other
@@ -329,22 +331,27 @@ private enum Rx {
     static let noteHead = w(#"ملاحظه|ملحوظه|نوت|note"#)
     static let buyVerb = w(#"عايز\s+اشتري|عاوز\s+اشتري|عايزه\s+اشتري|عاوزه\s+اشتري|محتاج\s+اشتري|محتاجه\s+اشتري|لازم\s+اشتري|لازم\s+نشتري|هشتري|هنشتري|نشتري|اشتري|اشتريلي|i\s+need\s+to\s+buy|need\s+to\s+buy|want\s+to\s+buy|buy"#)
     static let addVerbStart = #"^\s*(?:ضيف|ضيفي|ضيفلي|اضيف|حط|حطي|حطلي|زود|سجل|سجلي|add|put)(?![\p{L}\p{N}])"#
+    static let shoppingAddStart = #"^\s*(?:(?:انا\s+)?(?:عايز|عاوزه|عاوز|عايزه|محتاج|محتاجه)\s+|(?:i\s+)?(?:want|need|would\s+like)\s+to\s+)?(?:احط|اضيف|ضيف|ضيفي|ضيفلي|حط|حطي|حطلي|زود|سجل|سجلي|add|put)(?![\p{L}\p{N}])"#
     static let calendarVerbStart = #"^\s*(?:حط|حطي|حطلي|ضيف|ضيفي|ضيفلي|اضيف|اعمل|اعملي|سجل|سجلي|احجز|احجزلي|احجزي|schedule|add|create|put|book|set\s+up|new)(?![\p{L}\p{N}])"#
     static let calendarTarget = word(#"(?:(?:في|علي|لل|ل|to|on|in)\s*)?(?:the\s+|my\s+)?(?:ال)?(?:كالندر|كاليندر|تقويم|calendar)"#)
     static let imperativeStart = #"^\s*(?:و|ف)?(?:(?:ضيف|حط|سجل|اعمل|ابعت|كلم|اتصل|روح|افتح|شغل|احجز|ادفع|هات|خلي|غير|عدل|اكتب|احفظ|شيل|امسح|نظم|رتب|جيب|دور|شوف|اطلب|حول|فكر|ذكر)\p{L}{0,3}|add|put|log|save|call|send|email|text|book|schedule|create|make|set|open|go|pay|tell|ask|check|get|order|delete|remove|cancel|move|change|update|transfer|remember|buy)(?![\p{L}\p{N}])"#
 
     static let project = b + #"(?:(?:لل|ل|في|علي|الي|تبع|to|for|in|under|on)\s*)?(?:the\s+)?(?:ال)?(?:مشروع|بروجكت|بروجيكت|project)\s+([^:\n]+?)\s*(?=:|\n|$)"#
     static let arabicList = b + #"(?:(?:لل|ل|في|علي|الي)\s*)?(?:ال)?(?:قائمه|قايمه|ليسته|لسته)(?![\p{L}\p{N}])(?:\s+(?:ال)?(?:مشتريات|شراء|شرا|تسوق|حاجات|طلبات)(?![\p{L}\p{N}]))?(?:\s+([^\n]+?))?\s*$"#
-    static let englishList = b + #"(?:(?:to|on|in|into)\s+)?(?:the\s+|my\s+)?(?:shopping\s+|grocery\s+)?list(?![\p{L}\p{N}])(?:\s+([^\n]+?))?\s*$"#
+    static let englishList = b + #"(?:(?:to|on|in|into|في|علي|الي|لل|ل)[\sـ]*)?(?:the\s+|my\s+|ال[\sـ]*)?(?:shopping\s*|grocery\s*)?list(?:ه)?(?![\p{L}\p{N}])(?:\s+([^\n]+?))?\s*$"#
+    static let newShoppingList = #"^\s*(?:(?:انا\s+)?(?:عايز|عاوزه|عاوز|عايزه|محتاج|محتاجه)\s+)?(?:ابتدي\s+)?(?:اعمل|انشئ|create|make)\s+(?:a\s+)?(?:new\s+)?(?:ال[\sـ]*)?(?:(?:shopping\s*|grocery\s*)?list(?:ه)?|قائمه|قايمه|ليسته|لسته)(?:\s+(?:جديده|جديد|new))?(?:\s+(?:اسمها|اسمه|باسم|named|called)\s+(.+?))?\s+(?:احط|اضيف|حط|ضيف|add|put)\s+(?:فيها|فيه|in\s+it|into\s+it)\s+"#
+    static let purchaseTail = #"(?:\s*[,،.!؛;]\s*|\s+)(?:كل(?:ه)?\s+(?:ده|دا|دول)|(?:كل\s+)?الحاجات\s+دي)\s+(?:انا\s+)?(?:(?:عايز|عاوزه|عاوز|عايزه|ناوي)\s+)?(?:انزل\s+)?(?:(?:اشتري|هشتري)(?:ه|ها|هم)?|اجيب(?:ه|ها|هم)?)(?![\p{L}\p{N}])[\s\S]*$"#
     static let genericLists: Set<String> = ["المشتريات", "مشتريات", "الشراء", "التسوق", "الحاجات", "الطلبات", "shopping", "grocery"]
     static let taskLists: Set<String> = ["المهام", "مهام", "tasks", "todo", "to-do", "to do"]
     static let quantity = #"علبه|علبتين|علب|كيلو|كيلوين|جرام|نص|ربع|ازازه|ازازتين|ازايز|كيس|كيسين|اكياس|باكو|باكوين|باكيت|باكيتين|كرتونه|كرتونتين|رغيف|حبه|حبتين|دسته|طبق|لتر|لترين|واحد|واحده|اتنين|تلاته|اربعه|خمسه|سته|سبعه|تمانيه|تسعه|عشره"#
     /// Only clear delimiters; a word-initial و splits only before Latin/digits, ال or a quantity word.
-    static let itemSeparator = #"\s*[,+&;\n]\s*|\s+و\s+|\s+and\s+|\s+و(?=(?:[a-z0-9]|ال\p{L}|(?:"# + quantity + #")(?![\p{L}])))"#
+    static let arabicItemSeparator = #"\s*[,،+&;\n]\s*|\s+و\s+|\s+و(?=(?:[a-z0-9]|ال\p{L}|(?:"# + quantity + #")(?![\p{L}])))"#
+    static let itemSeparator = arabicItemSeparator + #"|\s+and\s+"#
+    static let repeatedItem = #"\s+(?:و\s*)?(?:احط|اضيف|حط|ضيف)\s+فيها\s+"#
     static let stepSeparator = #"\s*\n+\s*|[.!?;](?=\s|$)\s*|\s+(?:ثم|then|وبعدين|بعدين|وبعد\s+كده|بعد\s+كده|بعد\s+كدا)\s+"#
     static let segmentSeparator = #"\s*[\n;]+\s*|\s+(?=و(?:فكرني|ذكرني|فكريني|ذكريني|سجل\s+مصروف|سجلي\s+مصروف)(?![\p{L}\p{N}]))|\s+and\s+(?=(?:remind\s+me|log\s+(?:an\s+)?expense|add\s+(?:an\s+)?expense)(?![\p{L}\p{N}]))"#
 
-    static let recipeHead = #"^\s*(?:(?:سجل|سجلي|احفظ|ضيف|اكتب|save|add|new)\s+)?(?:وصفه|recipe)(?![\p{L}\p{N}])"#
+    static let recipeHead = #"^\s*(?:(?:سجل|سجلي|احفظ|ضيف|اكتب|save|add|new)\s+)?(?:(?:a|the)\s+)?(?:وصفه|recipe)(?![\p{L}\p{N}])(?:\s+for(?![\p{L}\p{N}]))?"#
     static let ingredientsMarker = word(#"المكونات|مكونات|ingredients"#) + #"\s*:?"#
     static let stepsMarker = word(#"طريقه\s+التحضير|الطريقه|طريقه|الخطوات|خطوات|steps|method|directions|instructions"#) + #"\s*:?"#
 
@@ -459,7 +466,10 @@ private struct PhraseParser {
         consider(.reminder, d.first(Rx.reminderHead)?.range)
         consider(.expense, d.first(Rx.expenseHead)?.range)
         consider(.calendar, d.first(Rx.calendarHead)?.range)
-        consider(.shopping, d.first(Rx.buyVerb)?.range ?? listMatch(d)?.range)
+        if d.has(Rx.calendarVerbStart) { consider(.calendar, d.first(Rx.calendarTarget)?.range) }
+        let add = d.first(Rx.shoppingAddStart)
+        consider(.shopping, d.first(Rx.newShoppingList)?.range ?? d.first(Rx.buyVerb)?.range ??
+                 (add == nil ? nil : listMatch(d)?.range))
         var taskRange = d.first(Rx.taskHead)?.range
         if taskRange == nil, d.has(Rx.project) { taskRange = d.first(Rx.addVerbStart)?.range }
         consider(.task, taskRange)
@@ -575,6 +585,7 @@ private struct PhraseParser {
     }
 
     func shopping(_ d: Doc, _ body: String) -> [OrganizationDraft] {
+        if let frame = d.first(Rx.newShoppingList) { return newShopping(d, frame, body) }
         var cut: [NSRange] = []
         var collection = ""
         var kind = OrganizationKind.shopping
@@ -587,7 +598,7 @@ private struct PhraseParser {
             }
         }
         if let verb = d.first(Rx.buyVerb) { cut.append(verb.range) }
-        if let verb = d.first(Rx.addVerbStart) { cut.append(verb.range) }
+        if let verb = d.first(Rx.shoppingAddStart) { cut.append(verb.range) }
         if case .absent = moment(d).found {} else {
             return [review(kind, d, body, "This includes a date or time. Review whether you intended a reminder.")]
         }
@@ -599,6 +610,46 @@ private struct PhraseParser {
             out.collection = collection
             return out
         }
+    }
+
+    private func newShopping(_ d: Doc, _ frame: NSTextCheckingResult, _ body: String) -> [OrganizationDraft] {
+        let name = d.group(frame, 1).map { Doc(d.o($0)).text } ?? ""
+        let rest = d.sub(from: NSMaxRange(frame.range), to: d.length)
+        let tail = rest.first(Rx.purchaseTail)
+        let itemText = rest.sub(from: 0, to: tail?.range.location ?? rest.length)
+        func pending(_ reason: String) -> [OrganizationDraft] {
+            var draft = review(.shopping, d, body, reason)
+            draft.collection = name; draft.newShoppingListRequested = true
+            return [draft]
+        }
+        guard case .absent = moment(itemText).found, !d.has(Rx.currencyWord) else {
+            return pending("Review the item text or amount before creating a new shopping list.")
+        }
+        // Spoken wrappers and Arabic separators delimit these items; English 'and' may be a brand.
+        let titles = split(itemText, Rx.repeatedItem + "|" + Rx.arabicItemSeparator)
+        guard !titles.isEmpty else { return pending("The new shopping list has no clear items.") }
+        var drafts = titles.map { title -> OrganizationDraft in
+            var draft = make(.shopping, title, body)
+            draft.collection = name; draft.newShoppingListRequested = true
+            if name.isEmpty {
+                draft.requiresReview = true
+                draft.reason = "Name the new shopping list before saving its items. Existing lists were not changed."
+            }
+            return draft
+        }
+        if let tail {
+            let plan = rest.sub(from: tail.range.location, to: rest.length)
+            let when = moment(plan)
+            var draft = review(.task, plan, body,
+                "This is a purchase plan, not a requested notification. Review its timing separately.", title: "Buy the listed items")
+            switch when.found {
+            case .date(let date): draft.dueDate = date
+            case .unclear(let reason): draft.reason = reason + " No notification was requested or scheduled."
+            case .absent: break
+            }
+            drafts.append(draft)
+        }
+        return drafts
     }
 
     func task(_ d: Doc, _ body: String) -> OrganizationDraft {
@@ -907,6 +958,17 @@ enum OrganizedRecord: Equatable {
 
 private func isBlank(_ s: String) -> Bool { s.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
+func newShoppingListValidation(_ draft: OrganizationDraft, library: [OrganizerItem]) -> String? {
+    guard draft.kind == .shopping, draft.newShoppingListRequested == true else { return nil }
+    let name = draft.collection.trimmingCharacters(in: .whitespacesAndNewlines)
+    if name.isEmpty { return "Choose a name for the new shopping list." }
+    if library.contains(where: {
+        $0.collection.caseInsensitiveCompare(name) == .orderedSame &&
+        (draft.sourceCaptureID == nil || $0.sourceCaptureID != draft.sourceCaptureID)
+    }) { return "That collection already exists. Choose a different name for the new list." }
+    return nil
+}
+
 func validatedLibraryItem(_ item: OrganizerItem) throws -> OrganizerItem {
     var item = item
     item.title = try validatedTitle(item.title)
@@ -921,7 +983,10 @@ func validatedLibraryItem(_ item: OrganizerItem) throws -> OrganizerItem {
 
 /// Validates a draft and builds the stored record. IDs reuse the draft ID, so the same draft
 /// can never be stored twice; the draft body is kept as the raw source transcript.
-func organizedRecord(from draft: OrganizationDraft, now: Date) throws -> OrganizedRecord {
+func organizedRecord(from draft: OrganizationDraft, now: Date, library: [OrganizerItem] = []) throws -> OrganizedRecord {
+    if let message = newShoppingListValidation(draft, library: library) {
+        throw NSError(domain: "MixCapture.Shopping", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
+    }
     let title = try validatedTitle(draft.title)
     switch draft.kind {
     case .reminder:
@@ -992,7 +1057,7 @@ extension LocalItemsSnapshot {
             draft.sourceCaptureID = sourceID
             if !draft.requiresReview {
                 do {
-                    let record = try organizedRecord(from: draft, now: now)
+                    let record = try organizedRecord(from: draft, now: now, library: next.library ?? [])
                     if case .reminder(let item) = record { reminderIDs.append(item.id) }
                     next.insert(record)
                     continue
@@ -1023,8 +1088,15 @@ extension LocalItemsSnapshot {
         draft.body = stored.body
         draft.sourceCaptureID = stored.sourceCaptureID
         draft.createdAt = stored.createdAt
-        let record = try organizedRecord(from: draft, now: now)
+        draft.newShoppingListRequested = stored.newShoppingListRequested
+        let record = try organizedRecord(from: draft, now: now, library: library ?? [])
         queue.remove(at: index)
+        if draft.kind == .shopping, draft.newShoppingListRequested == true, let source = draft.sourceCaptureID {
+            for i in queue.indices where queue[i].kind == .shopping && queue[i].newShoppingListRequested == true &&
+                queue[i].sourceCaptureID == source && queue[i].collection == stored.collection {
+                queue[i].collection = draft.collection.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+        }
         var next = self
         next.reviewQueue = queue
         next.insert(record)
