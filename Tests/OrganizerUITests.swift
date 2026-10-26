@@ -75,9 +75,14 @@ final class OrganizerUITests: XCTestCase {
 
     private func openRecipe(_ app: XCUIApplication) {
         selectFilter(app, id: "library.filter.recipe")
-        let recipe = app.buttons["افتح \(recipeTitle)"]
+        let recipe = libraryLinks(app, title: recipeTitle).firstMatch
         require(recipe, "recipe row «\(recipeTitle)»")
         recipe.tap()
+    }
+
+    private func libraryLinks(_ app: XCUIApplication, title: String) -> XCUIElementQuery {
+        // SwiftUI wraps interpolated Arabic/English labels in bidi isolates; compare content.
+        app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@ AND label CONTAINS %@", "library.open.", title))
     }
 
     private func selectFilter(_ app: XCUIApplication, id: String) {
@@ -161,7 +166,7 @@ final class OrganizerUITests: XCTestCase {
         waitForHome(app)
         openTab(app, id: "tab.library", index: 1)
         selectFilter(app, id: "library.filter.task")
-        require(app.buttons["افتح مراجعة ميزانية مشروع Home"], "open fixture task").tap()
+        require(libraryLinks(app, title: "مراجعة ميزانية مشروع Home").firstMatch, "open fixture task").tap()
         require(element(app, id: "library.toggle"), "complete task").tap()
         XCTAssertTrue(element(app, id: "library.toggle").label.contains("إلغاء"), "Task did not complete")
         app.terminate()
@@ -169,7 +174,7 @@ final class OrganizerUITests: XCTestCase {
         waitForHome(app)
         openTab(app, id: "tab.library", index: 1)
         selectFilter(app, id: "library.filter.task")
-        require(app.buttons["افتح مراجعة ميزانية مشروع Home"], "open saved task").tap()
+        require(libraryLinks(app, title: "مراجعة ميزانية مشروع Home").firstMatch, "open saved task").tap()
         let toggle = require(element(app, id: "library.toggle"), "saved completed task")
         XCTAssertTrue(toggle.label.contains("إلغاء"), "Task completion was not persisted")
         screenshot(app, "14-completed-task")
@@ -233,7 +238,7 @@ final class OrganizerUITests: XCTestCase {
         openTab(app, id: "tab.library", index: 1)
         selectFilter(app, id: "library.filter.recipe")
         require(element(app, labelContaining: recipeTitle), "seeded recipe after relaunch")
-        XCTAssertEqual(app.cells.count, 1, "Recipe fixture was duplicated on relaunch")
+        XCTAssertEqual(libraryLinks(app, title: recipeTitle).count, 1, "Recipe fixture was duplicated on relaunch")
 
         // The EGP total is 350.50 on a clean store; seeding twice would show 701.00 instead.
         openTab(app, id: "tab.expenses", index: 2)
