@@ -19,10 +19,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(gh run view 40254306227 --json conclusion --jq '.conclusion')" = 'success'
-          test "$(gh run view 40254306227 --json headSha --jq '.headSha')" = '30601f9d7fc2b1d2c5e45cd3f2efc3866249139d'
-          gh run download 40254306227 --name mixcapture-unsigned --dir artifact
-          gh run download 40254306227 --name ui-screenshots --dir ui
+          test "$(gh run view 40254833544 --json conclusion --jq '.conclusion')" = 'success'
+          test "$(gh run view 40254833544 --json headSha --jq '.headSha')" = '2f0ba5ebf724bf98c7745758edf0b6e175e3abd4'
+          gh run download 40254833544 --name mixcapture-unsigned --dir artifact
+          gh run download 40254833544 --name ui-screenshots --dir ui
           cd artifact
           sed 's@build/@@' SHA256SUMS.txt | sha256sum -c -
           gh release upload pilot-v0.4.0 MixCapture-unsigned.ipa SHA256SUMS.txt build-info.txt --clobber
