@@ -54,6 +54,17 @@ struct OrganizerAdversarialChecks {
         automatic("فكرني بكرة الساعة عشرة الصبح أبعت review", kind: .reminder, due: tomorrowAtTen)
         automatic("remind me tomorrow at 10 AM to review budget", kind: .reminder, due: tomorrowAtTen)
         automatic("schedule a meeting tomorrow at 10 AM for 30 minutes", kind: .calendar, due: tomorrowAtTen)
+        review("ضيف task أراجع النتائج للـ project ده")
+        review("ساعدني أطور فكرة خدمة لترتيب أدوات المكتب")
+        review("ساعدني develop فكرة لعبة تعليمية")
+        review("Help me develop an app for organizing public reading lists")
+        review("غيّر deadline بتاع الـ task ده لبكرة الصبح في نفس الـ project")
+        review("للـ الخبز هل أضيف milk لقائمة Groceries")
+        let indirectListMention = parse("For banana bread you can add milk to the shopping list Groceries")
+        check(indirectListMention.allSatisfy { $0.kind == .note }, "Descriptive English purpose text is not an imperative add request")
+        let quotedRequest = parse("note: Help me develop a puzzle is a phrase to remember")
+        check(quotedRequest.count == 1 && quotedRequest.first?.kind == .note && quotedRequest.first?.requiresReview == false,
+              "Explicit note framing is preserved around a quoted development request")
         automatic("حط في التقويم قراءة كتاب بكرة الساعة عشرة الصبح لمدة 30 دقيقة", kind: .calendar, due: tomorrowAtTen)
         automatic("Add to calendar practice tomorrow at 10 AM for 30 minutes", kind: .calendar, due: tomorrowAtTen)
         check(parse("احفظ ملاحظة: حط في التقويم وقت للقراءة").allSatisfy { $0.kind == .note },

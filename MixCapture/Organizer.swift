@@ -155,6 +155,10 @@ enum OrganizerParser {
             return [parser.review(parser.classify(doc)?.kind ?? .note, doc, text,
                                   "This contains a negation or correction. Review the full source.")]
         }
+        if doc.has(Rx.modificationRequest) || doc.has(Rx.developmentRequest) {
+            return [parser.review(parser.classify(doc)?.kind ?? .note, doc, text,
+                                  "This requests an update or idea development. Review the intended action before saving.")]
+        }
         let segments = parser.segments(doc)
         guard segments.count > 1 else { return parser.parseSegment(doc, text, previous: nil) }
         var drafts: [OrganizationDraft] = []
@@ -325,13 +329,15 @@ private enum Rx {
 
     static let negation = w(#"متسجلش|متسجليش|ماتسجلش|متفكرنيش|ماتفكرنيش|متضيفش|ماتضيفش|متحطش|ماتحطش|متعملش|ماتعملش|متشتريش|ماتشتريش|مش|مو|لا|بلاش|الغي|الغيه|الغيها|الغاء|كنسل|امسح|امسحه|امسحها|احذف|شيل|don't|dont|do\s+not|not|never|cancel|delete|remove|no"#)
     static let reminderHead = w(#"فكرني|ذكرني|فكريني|ذكريني|نبهني|نبهيني|remind\s+me|reminder|remind"#)
+    static let modificationRequest = #"^\s*(?:(?:غير|عدل)\p{L}{0,2}|change|update|move)(?![\p{L}\p{N}])"#
+    static let developmentRequest = #"^\s*(?:ساعدني\s+(?:اطور|develop)|help\s+me\s+develop)(?![\p{L}\p{N}])"#
     static let expenseHead = w(#"سجل\s+مصروف|سجلي\s+مصروف|سجل\s+مصاريف|ضيف\s+مصروف|مصروف|مصاريف|دفعت|صرفت|اشتريت|log\s+(?:an\s+)?expense|add\s+(?:an\s+)?expense|expense|i\s+paid|i\s+spent|i\s+bought|paid|spent|bought"#)
     static let calendarHead = w(#"اجتماع|ميتينج|ميتنج|ميعاد|معاد|موعد|مقابله|meeting|appointment|event"#)
     static let taskHead = w(#"مهمه|تاسك|task|todo|to-do"#)
     static let noteHead = w(#"ملاحظه|ملحوظه|نوت|note"#)
     static let buyVerb = w(#"عايز\s+اشتري|عاوز\s+اشتري|عايزه\s+اشتري|عاوزه\s+اشتري|محتاج\s+اشتري|محتاجه\s+اشتري|لازم\s+اشتري|لازم\s+نشتري|هشتري|هنشتري|نشتري|اشتري|اشتريلي|i\s+need\s+to\s+buy|need\s+to\s+buy|want\s+to\s+buy|buy"#)
     static let addVerbStart = #"^\s*(?:ضيف|ضيفي|ضيفلي|اضيف|حط|حطي|حطلي|زود|سجل|سجلي|add|put)(?![\p{L}\p{N}])"#
-    static let shoppingAddStart = #"^\s*(?:(?:انا\s+)?(?:عايز|عاوزه|عاوز|عايزه|محتاج|محتاجه)\s+|(?:i\s+)?(?:want|need|would\s+like)\s+to\s+)?(?:احط|اضيف|ضيف|ضيفي|ضيفلي|حط|حطي|حطلي|زود|سجل|سجلي|add|put)(?![\p{L}\p{N}])"#
+    static let shoppingAddStart = #"^\s*(?:(?:لل[\sـ]*[^,،:;؛.!?؟\n\"“”]+?[,،:]?\s+|for\s+[^,،:;؛.!?؟\n\"“”]+?,\s+))?(?:(?:انا\s+)?(?:عايز|عاوزه|عاوز|عايزه|محتاج|محتاجه)\s+|(?:i\s+)?(?:want|need|would\s+like)\s+to\s+)?(?:احط|اضيف|ضيف|ضيفي|ضيفلي|حط|حطي|حطلي|زود|سجل|سجلي|add|put)(?![\p{L}\p{N}])"#
     static let calendarVerbStart = #"^\s*(?:حط|حطي|حطلي|ضيف|ضيفي|ضيفلي|اضيف|اعمل|اعملي|سجل|سجلي|احجز|احجزلي|احجزي|schedule|add|create|put|book|set\s+up|new)(?![\p{L}\p{N}])"#
     static let calendarTarget = word(#"(?:(?:في|علي|لل|ل|to|on|in)\s*)?(?:the\s+|my\s+)?(?:ال)?(?:كالندر|كاليندر|تقويم|calendar)"#)
     static let imperativeStart = #"^\s*(?:و|ف)?(?:(?:ضيف|حط|سجل|اعمل|ابعت|كلم|اتصل|روح|افتح|شغل|احجز|ادفع|هات|خلي|غير|عدل|اكتب|احفظ|شيل|امسح|نظم|رتب|جيب|دور|شوف|اطلب|حول|فكر|ذكر)\p{L}{0,3}|add|put|log|save|call|send|email|text|book|schedule|create|make|set|open|go|pay|tell|ask|check|get|order|delete|remove|cancel|move|change|update|transfer|remember|buy)(?![\p{L}\p{N}])"#
@@ -585,6 +591,10 @@ private struct PhraseParser {
     }
 
     func shopping(_ d: Doc, _ body: String) -> [OrganizationDraft] {
+        if let add = d.first(Rx.shoppingAddStart),
+           Doc(d.o(add.range)).has(Rx.w(#"هل|should\s+i|can\s+i|could\s+i|do\s+i"#)) {
+            return [review(.shopping, d, body, "This asks about adding an item. Confirm the intended action.")]
+        }
         if let frame = d.first(Rx.newShoppingList) { return newShopping(d, frame, body) }
         var cut: [NSRange] = []
         var collection = ""
@@ -669,6 +679,11 @@ private struct PhraseParser {
         case .unclear(let reason):
             out.requiresReview = true
             out.reason = reason
+        }
+        if Rx.pronouns.contains(Doc(out.collection).key) {
+            out.collection = ""
+            out.requiresReview = true
+            out.reason = [out.reason, "Choose the project name; the reference is unclear."].compactMap { $0 }.joined(separator: " ")
         }
         return out
     }

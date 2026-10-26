@@ -48,6 +48,16 @@ struct ShoppingRoutingChecks {
         check(legacy.map(\.title) == ["milk", "eggs"] && legacy.allSatisfy {
             $0.kind == .shopping && $0.collection == "Groceries" && !$0.requiresReview
         }, "Existing English list splitting remains intact")
+        for text in ["للـ banana bread ضيف 3 bananas و200 grams flour وعلبة baking powder لقائمة Baking",
+                     "For banana bread, add 3 bananas و200 grams flour وعلبة baking powder to shopping list Baking"] {
+            let baking = parse(text)
+            check(baking.map(\.title) == ["3 bananas", "200 grams flour", "علبة baking powder"] && baking.allSatisfy {
+                $0.kind == .shopping && $0.collection == "Baking" && !$0.requiresReview
+            }, "A purpose-framed add command keeps all three items and removes only its shared wrapper")
+        }
+        let purposeNote = parse("For banana bread, the shopping list has flour.")
+        check(purposeNote.count == 1 && purposeNote[0].kind == .note,
+              "A purpose and list mention without an add command remains a note")
 
         let unnamedText = "عايز ابتدي أعمل list جديدة أحط فيها blue notebook وLego City bus وأحط فيها apple juice"
         let unnamed = parse(unnamedText)
