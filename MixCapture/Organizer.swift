@@ -329,7 +329,7 @@ private enum Rx {
 
     static let negation = w(#"متسجلش|متسجليش|ماتسجلش|متفكرنيش|ماتفكرنيش|متضيفش|ماتضيفش|متحطش|ماتحطش|متعملش|ماتعملش|متشتريش|ماتشتريش|مش|مو|لا|بلاش|الغي|الغيه|الغيها|الغاء|كنسل|امسح|امسحه|امسحها|احذف|شيل|don't|dont|do\s+not|not|never|cancel|delete|remove|no"#)
     static let reminderHead = w(#"فكرني|ذكرني|فكريني|ذكريني|نبهني|نبهيني|remind\s+me|reminder|remind"#)
-    static let modificationRequest = #"^\s*(?:(?:غير|عدل)\p{L}{0,2}|change|update|move)(?![\p{L}\p{N}])"#
+    static let modificationRequest = #"^\s*(?:(?:غير|غيّر|عدل|عدّل)\p{L}{0,2}|change|update|move)(?![\p{L}\p{N}])"#
     static let developmentRequest = #"^\s*(?:ساعدني\s+(?:اطور|develop)|help\s+me\s+develop)(?![\p{L}\p{N}])"#
     static let expenseHead = w(#"سجل\s+مصروف|سجلي\s+مصروف|سجل\s+مصاريف|ضيف\s+مصروف|مصروف|مصاريف|دفعت|صرفت|اشتريت|log\s+(?:an\s+)?expense|add\s+(?:an\s+)?expense|expense|i\s+paid|i\s+spent|i\s+bought|paid|spent|bought"#)
     static let calendarHead = w(#"اجتماع|ميتينج|ميتنج|ميعاد|معاد|موعد|مقابله|meeting|appointment|event"#)
