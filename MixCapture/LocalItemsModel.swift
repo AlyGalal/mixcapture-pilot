@@ -267,10 +267,7 @@ final class LocalItemsModel {
         let content = UNMutableNotificationContent()
         content.title = current.title
         content.sound = .default
-        var parts = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second],
-                                                     from: current.scheduledDate)
-        parts.calendar = Calendar.current
-        parts.timeZone = Calendar.current.timeZone
+        let parts = notificationDateComponents(for: current.scheduledDate)
         let request = UNNotificationRequest(identifier: id.uuidString, content: content,
                                             trigger: UNCalendarNotificationTrigger(dateMatching: parts, repeats: false))
         do { try await center.add(request) } catch {

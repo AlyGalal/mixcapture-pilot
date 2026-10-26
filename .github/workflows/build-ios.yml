@@ -48,6 +48,7 @@ jobs:
             build/items-checks.log
             build/organizer-checks.log
             build/organizer-adversarial-checks.log
+            build/notification-checks.log
             build/whisper-smoke.log
             build/xcodebuild.log
           if-no-files-found: warn

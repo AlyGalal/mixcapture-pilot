@@ -127,6 +127,16 @@ func validateFutureDate(_ date: Date, now: Date = Date()) throws {
     guard date > now else { throw LocalItemsError.pastDate }
 }
 
+/// A one-off reminder denotes an instant. UTC components keep repeated DST hours distinct.
+func notificationDateComponents(for date: Date) -> DateComponents {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+    var parts = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
+    parts.calendar = calendar
+    parts.timeZone = calendar.timeZone
+    return parts
+}
+
 // MARK: - Monthly summary
 
 struct CurrencyTotal: Equatable {

@@ -17,6 +17,7 @@ struct MixCaptureApp: App {
     var body: some Scene {
         WindowGroup {
             OrganizerShell(model: model)
+                .tint(Theme.teal)
                 .preferredColorScheme(simulatorAppearance)
                 .environment(\.layoutDirection, .rightToLeft)
                 .task { await SimulatorFixtures.installIfRequested() }

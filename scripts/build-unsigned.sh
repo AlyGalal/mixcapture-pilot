@@ -21,6 +21,9 @@ build/organizer-checks | tee build/organizer-checks.log
 swiftc -parse-as-library MixCapture/LocalItems.swift MixCapture/Organizer.swift Tests/OrganizerAdversarialChecks.swift \
   -o build/organizer-adversarial-checks
 build/organizer-adversarial-checks | tee build/organizer-adversarial-checks.log
+swiftc -parse-as-library MixCapture/LocalItems.swift MixCapture/Organizer.swift Tests/NotificationChecks.swift \
+  -framework UserNotifications -o build/notification-checks
+build/notification-checks | tee build/notification-checks.log
 
 # App icon is generated natively with CoreGraphics (no bitmap/SVG assets in the repo).
 swift scripts/make-icon.swift build
