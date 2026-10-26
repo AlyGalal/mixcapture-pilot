@@ -28,6 +28,31 @@ struct ShoppingRoutingChecks {
             check(drafts.count == 1 && drafts[0].kind == .shopping && drafts[0].title == title &&
                   drafts[0].collection == "Groceries" && !drafts[0].requiresReview, "Mixed list routing: \(text)")
         }
+        // Speech engines add sentence punctuation; this must not change an unnamed destination.
+        for command in ["عايز احط red marker في ال shopping list", "ضيف red marker لقائمة المشتريات"] {
+            for ending in [".", ",", "،", "!", ":", "؛", "…"] {
+                let drafts = parse(command + ending)
+                check(drafts.count == 1 && drafts[0].kind == .shopping && drafts[0].title == "red marker" &&
+                      drafts[0].collection.isEmpty && !drafts[0].requiresReview,
+                      "Sentence punctuation changed shopping routing: \(command + ending)")
+            }
+        }
+        for name in ["C#", "C++", "A_B"] {
+            let drafts = parse("Add red marker to shopping list " + name)
+            check(drafts.count == 1 && drafts[0].collection == name && drafts[0].kind == .shopping,
+                  "Meaningful collection-name characters must survive: \(name)")
+        }
+        for ending in ["?", "؟", "?!", "؟.", "?\"", "?)."] {
+            let drafts = parse("Add red marker to shopping list Groceries" + ending)
+            check(drafts.allSatisfy(\.requiresReview), "A question ending must not create shopping items: \(ending)")
+        }
+        let spokenSource = "عايز احط red marker في ال shopping list."
+        let spoken = parse(spokenSource)
+        let spokenSnapshot = LocalItemsSnapshot().applyingOrganization(spoken, sourceID: UUID(), now: now)!.snapshot
+        let restored = try JSONDecoder().decode(LocalItemsSnapshot.self, from: JSONEncoder().encode(spokenSnapshot))
+        check(restored.library?.count == 1 && restored.library?.first?.kind == .shopping &&
+              restored.library?.first?.body == spokenSource && (restored.reviewQueue ?? []).isEmpty,
+              "The spoken-punctuation path stores and reloads Shopping with the untouched source")
         item("عايز أحط blue notebook في ال shopping list Groceries", "blue notebook")
         item("عايزة أضيف Lego City bus للـshoppinglist Groceries", "Lego City bus")
         item("عاوز أحط apple juice فيالـshopping list Groceries", "apple juice")
