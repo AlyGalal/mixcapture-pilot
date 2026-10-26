@@ -54,6 +54,12 @@ curl --fail --location --retry 3 \
 printf '%s  %s\n' '5061de78839208537dca090724069341750dffc55e220d81f20d63bdf244a164' \
   'build/Whisper/arzen-example.wav' | shasum -a 256 -c -
 /usr/bin/afconvert -f m4af -d aac@44100 -c 2 build/Whisper/arzen-example.wav build/Whisper/arzen-stereo.m4a
+# Public English-only control from the pinned runtime's own sample; evaluation only.
+curl --fail --location --retry 3 \
+  'https://raw.githubusercontent.com/ggml-org/whisper.cpp/v1.8.2/samples/jfk.wav' \
+  -o build/Whisper/english-example.wav
+printf '%s  %s\n' '59dfb9a4acb36fe2a2affc14bacbee2920ff435cb13cc314a08c13f66ba7860e' \
+  'build/Whisper/english-example.wav' | shasum -a 256 -c -
 smoke='build/WhisperSmoke.app/Contents'
 mkdir -p "$smoke/MacOS" "$smoke/Resources" "$smoke/Frameworks"
 cp build/Whisper/ggml-codeswitch-medium-q8_0.bin "$smoke/Resources/"
@@ -65,7 +71,7 @@ swiftc -parse-as-library -target "$(uname -m)-apple-macos26.0" \
   -F "$smoke/Frameworks" -framework whisper -Xlinker -rpath -Xlinker '@executable_path/../Frameworks' \
   MixCapture/CaptureRecord.swift MixCapture/LocalTranscriber.swift MixCapture/WhisperTranscriber.swift \
   Tests/WhisperSmoke.swift -o "$smoke/MacOS/WhisperSmoke"
-"$smoke/MacOS/WhisperSmoke" build/Whisper/arzen-example.wav build/Whisper/arzen-stereo.m4a \
+"$smoke/MacOS/WhisperSmoke" build/Whisper/arzen-example.wav build/Whisper/arzen-stereo.m4a build/Whisper/english-example.wav \
   | tee build/whisper-smoke.log
 
 xcodebuild \

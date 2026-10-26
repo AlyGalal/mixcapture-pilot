@@ -53,6 +53,7 @@ struct OrganizerAdversarialChecks {
         automatic("فكرني بعد ربع ساعة أكلم Sam", kind: .reminder, due: now.addingTimeInterval(900))
         automatic("فكرني بكرة الساعة عشرة الصبح أبعت review", kind: .reminder, due: tomorrowAtTen)
         automatic("remind me tomorrow at 10 AM to review budget", kind: .reminder, due: tomorrowAtTen)
+        automatic("schedule a meeting tomorrow at 10 AM for 30 minutes", kind: .calendar, due: tomorrowAtTen)
         automatic("دفعت ١٢٠٫٥٠ جنيه في Uber", kind: .expense, amount: 12050)
         automatic("paid 120.50 EGP for Uber", kind: .expense, amount: 12050)
         automatic("سجل مصروف خمسين جنيه قهوة", kind: .expense, amount: 5000)
@@ -62,6 +63,7 @@ struct OrganizerAdversarialChecks {
         automatic("دفعت مائة وعشرين جنيه على القهوة", kind: .expense, amount: 12000)
         automatic("paid one hundred twenty five EGP for Uber", kind: .expense, amount: 12500)
         automatic("ضيف مهمة review budget لمشروع Home", kind: .task, collection: "Home")
+        automatic("add a task to review budget for project Home", kind: .task, collection: "Home")
         automatic("ملاحظة لمشروع Home: راجع API v2 مع أحمد", kind: .note, collection: "Home")
 
         let shopping = parse("add milk and eggs to shopping list Groceries")
@@ -73,6 +75,12 @@ struct OrganizerAdversarialChecks {
         let recipe = parse("وصفة مكرونة: المكونات مكرونة وطماطم. الطريقة اسلق المكرونة ثم ضيف الطماطم")
         check(recipe.count == 1 && recipe.allSatisfy { !$0.requiresReview && $0.kind == .recipe },
               "Recipe instructions must stay in a recipe, not become separate actions")
+        let englishRecipe = parse("recipe Lentil soup: ingredients lentils and onion. steps boil the lentils then blend")
+        check(englishRecipe.count == 1 && englishRecipe.first?.kind == .recipe && englishRecipe.first?.requiresReview == false,
+              "English recipe must organize automatically as one recipe")
+        check(englishRecipe.first?.title == "Lentil soup" && englishRecipe.first?.ingredients == ["lentils", "onion"] &&
+              englishRecipe.first?.steps == ["boil the lentils", "blend"],
+              "English recipe must retain its spoken name, ingredients and steps")
 
         // Negation/correction, competing values, and missing information must not execute.
         for text in [

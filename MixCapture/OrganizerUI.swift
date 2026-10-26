@@ -672,11 +672,12 @@ private struct CommandExamples: View {
     }
 
     static let examples = [
-        "سجل مصروف ٣٥٠ جنيه groceries",
-        "دفعت 120.50 EGP في Uber",
-        "فكرني بكرة الساعة 10 صباحاً أراجع الـbudget",
-        "Add milk وعلبتين yogurt لقائمة Groceries",
-        "وصفة شوربة عدس: المكونات عدس وبصل. الخطوات: اسلق العدس ثم اهرسه",
+        "paid 120.50 EGP for Uber",
+        "add a task to review budget for project Home",
+        "remind me tomorrow at 10 AM to review budget",
+        "add milk and eggs to shopping list Groceries",
+        "recipe Lentil soup: ingredients lentils and onion. steps boil the lentils then blend",
+        "فكرني بعد 10 دقايق أراجع الـbudget",
     ]
 }
 

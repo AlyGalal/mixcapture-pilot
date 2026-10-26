@@ -34,6 +34,14 @@ struct WhisperSmoke {
         try require(hasBothScripts(compressed.segments.joined(separator: " ")),
                     "44.1-kHz stereo AAC conversion retains both scripts")
 
+        let english = try await LocalTranscriber.transcribe(
+            audioURL: URL(fileURLWithPath: CommandLine.arguments[3]), locale: .mixedArabicEnglish)
+        let englishText = english.segments.joined(separator: " ")
+        print("PUBLIC ENGLISH CONTROL: \(englishText)")
+        try require(englishText.lowercased().contains("americans") && englishText.lowercased().contains("country") &&
+                    englishText.range(of: "[\\u0621-\\u064A]", options: .regularExpression) == nil,
+                    "English-only speech stays in English under the same mixed profile")
+
         let silence = audio.deletingLastPathComponent().appendingPathComponent("silence.wav")
         let format = AVAudioFormat(standardFormatWithSampleRate: 16_000, channels: 1)!
         let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16_000)!
