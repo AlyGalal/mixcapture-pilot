@@ -1,0 +1,62 @@
+name: Publish verified experimental build 6
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Verify complete checks and publish exact artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          source='2e03dad2210868a8353a526dc8160be83127ab60'
+          for run in 40377677435 40377679366; do
+            test "$(gh run view "$run" --json conclusion --jq '.conclusion')" = 'success'
+            test "$(gh run view "$run" --json headSha --jq '.headSha')" = "$source"
+          done
+          gh run download 40377677435 --name mixcapture-unsigned --dir artifact
+          gh run download 40377679366 --name daily-scenario-audit --dir audit
+          cd artifact
+          sed 's@build/@@' SHA256SUMS.txt | sha256sum -c -
+          python3 - <<'PYCODE'
+          import zipfile, plistlib, hashlib, json
+          with zipfile.ZipFile('MixCapture-unsigned.ipa') as z:
+              names=z.namelist()
+              info=plistlib.loads(z.read('Payload/MixCapture.app/Info.plist'))
+              assert info['CFBundleVersion']=='6'
+              assert info['CFBundleIdentifier']=='com.mixcapture.pilot'
+              assert info['CFBundleDevelopmentRegion']=='en'
+              assert info['CFBundleSupportedPlatforms']==['iPhoneOS']
+              assert not any(n.lower().endswith(('.wav','.m4a','.mp3','.aac')) for n in names)
+              assert len([n for n in names if n.endswith('.bin')])==1
+              with z.open('Payload/MixCapture.app/ggml-codeswitch-medium-q8_0.bin') as f:
+                  assert hashlib.file_digest(f,'sha256').hexdigest()=='42ad913750c5487f8fb7bb9d45033fc06443d59d387c797b02632f639d46fbdd'
+          with open('../audit/results.json') as f:
+              report=json.load(f)
+          assert report['schema_version']==2 and len(report['cases'])==100
+          assert all(not case['executed_actions'] for case in report['cases'])
+          assert sum(report['summary'].values())==100
+          print('Verified build 6, unchanged pinned model, no packaged audio, and synthetic audit.')
+          PYCODE
+          cp ../audit/report.html Daily-life-100-scenarios.html
+          cp ../audit/results.json Daily-life-100-results.json
+          cat > release-notes.txt <<'NOTES'
+          Build 6 adds local transcription stages and elapsed time, Stop transcription while keeping audio/previous text, and a cooperative timeout that requires manual retry rather than looping. Background cancellation still queues the file for the next foreground run. Native model loading/Metal operations cannot be forcibly interrupted. The model and decoding settings are unchanged; these are recovery and diagnostic improvements, not proof that an individual slow iPhone recording is fixed.
+
+          Includes 100 synthetic daily-life scenarios and an audit of the current text parser: 20 field matches, 16 safe review holds, and 64 reported gaps. This is not 100 passing features or an audio-accuracy test. The audit executed no native writes or actions. No personal recordings or data are included.
+
+          Unsigned IPA: update the existing com.mixcapture.pilot app using the same signing account, without deleting it. Real-device transcription timing, locked-screen behavior, Back Tap and notifications still need device checks.
+          NOTES
+          gh release create pilot-v0.6.0 --target "$source" --title 'MixCapture build 6 — local transcription recovery' --notes-file release-notes.txt --prerelease --draft
+          gh release upload pilot-v0.6.0 MixCapture-unsigned.ipa SHA256SUMS.txt build-info.txt Daily-life-100-scenarios.html Daily-life-100-results.json
+          gh release edit pilot-v0.6.0 --draft=false
