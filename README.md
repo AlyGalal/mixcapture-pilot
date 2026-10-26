@@ -30,3 +30,9 @@ The IPA is unsigned and requires signing through a sideloading tool. Real-device
 ## Build 6: transcription recovery
 
 Mixed Whisper now shows its current stage and elapsed time and supports Stop transcription while preserving audio and any previous text. A cooperative whole-run budget of max(120 seconds, 12 times audio duration) yields a retryable terminal failure, without an automatic retry loop. Model loading and native Metal graphs cannot be forcibly interrupted; the app retains their context until they return. Backgrounding restarts the file from the beginning on return. The model and decoding parameters are unchanged; the cause of an individual slow run still needs real-device measurement.
+
+## Build 7: command routing
+
+Colloquial Arabic and mixed shopping-list commands recognize Arabic articles/prepositions and keep product text in its original script. New-list requests split items from a purchase plan, require a list name, and reject collisions with existing collections. Naming one pending item supplies the name to its siblings in that same request. Purchase timing stays in a review task; notifications require an explicit reminder request. Multiple new lists in one utterance wait for clarification. Calendar-target requests and natural English recipe headers retain their intended types; unresolved project references, update requests and unsupported idea-development requests wait for review.
+
+The unchanged 100-scenario audit has 22 field matches, 17 safe review holds, and 61 remaining interpretation/review/capability gaps. Its five previous automatic-review-gate gaps are now held. Dedicated checks add 23 synthetic shopping inputs and persisted-state validation. Existing saved Notes retain their type until edited; routing changes apply to new commands. The ASR model is unchanged, so this is not a claim of improved voice/name accuracy. All published examples are synthetic.
