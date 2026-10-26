@@ -65,6 +65,12 @@ struct ShoppingRoutingChecks {
         check(unnamed.map(\.title) == titles && unnamed.allSatisfy {
             $0.kind == .shopping && $0.requiresReview && $0.collection.isEmpty && $0.newShoppingListRequested == true
         }, "A new unnamed list yields exact pending items, not an implicit merge")
+        for input in ["عايز أعمل list جديدة، أحط فيها blue notebook وأحط فيها apple juice",
+                      "اعمل list جديدة اسمها Market: أحط فيها: blue notebook وأحط فيها apple juice"] {
+            let punctuated = parse(input)
+            check(punctuated.map(\.title) == ["blue notebook", "apple juice"] && punctuated.allSatisfy { $0.kind == .shopping },
+                  "Speech punctuation around a list header keeps shopping routing")
+        }
         let hybrid = parse("عايز أعمل listة جديدة أحط فيها blue notebook")
         check(hybrid.count == 1 && hybrid[0].title == "blue notebook" && hybrid[0].requiresReview &&
               hybrid[0].newShoppingListRequested == true, "Hybrid feminine list noun is recognized")
