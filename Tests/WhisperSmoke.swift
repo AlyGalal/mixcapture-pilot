@@ -61,6 +61,45 @@ struct WhisperSmoke {
         rejected = false
         do { _ = try await cancelled.value } catch is CancellationError { rejected = true }
         try require(rejected, "cancelled transcription cannot return a successful result")
+
+        // Unlike the pre-cancel check above, stop AFTER whisper.cpp has entered its encoder.
+        // Public research audio only. A failure must release the context so the next run works.
+        let backgroundStop = WhisperTranscriber.CancelFlag()
+        backgroundStop.cancel()
+        backgroundStop.setTimeLimit(0)
+        try require(backgroundStop.isCancelled && !backgroundStop.hasTimedOut,
+                    "background cancellation remains cancellation after its deadline")
+        let expiredFirst = WhisperTranscriber.CancelFlag()
+        expiredFirst.setTimeLimit(0)
+        expiredFirst.cancel()
+        try require(expiredFirst.hasTimedOut, "deadline reached before cancellation remains timeout")
+        let originalAudio = try Data(contentsOf: audio)
+        for timeout in [false, true] {
+            let control = WhisperTranscriber.CancelFlag()
+            let running = Task {
+                try await WhisperTranscriber.transcribe(audioURL: audio, control: control)
+            }
+            let waitStarted = ProcessInfo.processInfo.systemUptime
+            while !control.hasEnteredNativeEncoder && ProcessInfo.processInfo.systemUptime - waitStarted < 45 {
+                try await Task.sleep(for: .milliseconds(20))
+            }
+            guard control.hasEnteredNativeEncoder else {
+                running.cancel()
+                _ = try? await running.value
+                try require(false, "native encoder must be reached before the in-flight stop check")
+                return
+            }
+            if timeout { control.setTimeLimit(0) } else { running.cancel() }
+            rejected = false
+            do { _ = try await running.value }
+            catch is CancellationError { rejected = !timeout }
+            catch WhisperTranscriber.Failure.timedOut { rejected = timeout }
+            try require(rejected, timeout ? "in-flight timeout is terminal failure, not cancellation/requeue"
+                                          : "in-flight native cancellation cannot return late text")
+            try require(try Data(contentsOf: audio) == originalAudio, "in-flight stop keeps original audio unchanged")
+        }
+        let afterStop = try await LocalTranscriber.transcribe(audioURL: audio, locale: .mixedArabicEnglish)
+        try require(afterStop.segments == first.segments, "manual retry works after native cancellation and timeout")
         print("Whisper smoke checks passed; one public sample does not establish real-device accuracy.")
     }
 }

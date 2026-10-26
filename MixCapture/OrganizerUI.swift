@@ -345,8 +345,27 @@ struct RecordingSheet: View {
             VStack(spacing: 12) {
                 ProgressView()
                 Text("Transcribing on this device…").font(.headline)
-                Text("Longer recordings may take more time. Transcription pauses when you leave the app and resumes when you return.")
+                if let control = model.transcriptionControl {
+                    TimelineView(.periodic(from: .now, by: 1)) { _ in
+                        Text("\(control.stage) · \(Int(control.elapsedSeconds)) s elapsed")
+                            .font(.subheadline.monospacedDigit())
+                            .accessibilityIdentifier("recording.transcriptionStage")
+                        if control.hasTimedOut {
+                            Text("Time limit reached. Waiting for the local engine to stop. Your audio is saved.")
+                                .font(.footnote).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                Text("Keep the app open. Leaving the app restarts this file from the beginning when you return. Your audio is saved.")
                     .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                if model.transcriptionStopMessage != nil {
+                    Text("Stopping the local engine… Your audio is saved.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                } else {
+                    Button("Stop transcription — keep audio") { model.stopTranscription() }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("recording.stopTranscription")
+                }
             }
             .organizerCard()
         case .saved(let message):

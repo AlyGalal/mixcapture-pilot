@@ -29,6 +29,7 @@ actor WhisperTranscriber {
         case audioFormat(String)
         case audioTooLong(maxMinutes: Int)
         case inferenceFailed(code: Int32)
+        case timedOut(stage: String)
 
         var errorDescription: String? {
             switch self {
@@ -44,6 +45,8 @@ actor WhisperTranscriber {
                 return "Recording exceeds \(minutes) minutes. It was not trimmed; your original audio is saved."
             case .inferenceFailed(let code):
                 return "Whisper transcription failed (code \(code)). Your original audio is saved."
+            case .timedOut(let stage):
+                return "Local transcription exceeded its time limit during \(stage). Your audio is saved. Retry manually; keep the app open."
             }
         }
     }
@@ -53,36 +56,84 @@ actor WhisperTranscriber {
     final class CancelFlag: @unchecked Sendable {
         private let lock = NSLock()
         private var cancelled = false
+        private let started = ProcessInfo.processInfo.systemUptime
+        private var deadline = Double.infinity
+        private var currentStage = "Converting audio"
+        private var enteredNativeEncoder = false
+
+        var elapsedSeconds: Double { ProcessInfo.processInfo.systemUptime - started }
+
+        var stage: String {
+            lock.lock()
+            defer { lock.unlock() }
+            return currentStage
+        }
+
+        func setStage(_ stage: String, nativeEncoder: Bool = false) {
+            lock.lock()
+            currentStage = stage
+            enteredNativeEncoder = enteredNativeEncoder || nativeEncoder
+            lock.unlock()
+        }
+
+        var hasEnteredNativeEncoder: Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            return enteredNativeEncoder
+        }
+
+        // Monotonic whole-run budget, including conversion/model loading. Never extend a deadline.
+        func setTimeLimit(_ seconds: Double) {
+            lock.lock()
+            deadline = min(deadline, started + seconds)
+            lock.unlock()
+        }
+
+        var hasTimedOut: Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            return !cancelled && ProcessInfo.processInfo.systemUptime >= deadline
+        }
 
         func cancel() {
             lock.lock()
-            cancelled = true
+            // First stop wins: a background cancellation before the deadline must remain
+            // pending even if an uninterruptible native graph returns after the deadline.
+            if ProcessInfo.processInfo.systemUptime < deadline { cancelled = true }
             lock.unlock()
         }
 
         var isCancelled: Bool {
             lock.lock()
             defer { lock.unlock() }
-            return cancelled
+            return cancelled || ProcessInfo.processInfo.systemUptime >= deadline
         }
     }
 
     /// Transcribes one finalized recording. Throws `CancellationError` if cancelled at any point;
     /// a cancelled run never returns a result. The audio file is only read, never modified.
-    static func transcribe(audioURL: URL) async throws -> LocalTranscriber.Output {
-        let flag = CancelFlag()
-        let output = try await withTaskCancellationHandler {
-            try await shared.run(audioURL: audioURL, flag: flag)
-        } onCancel: {
-            flag.cancel()
+    static func transcribe(audioURL: URL, control: CancelFlag? = nil) async throws -> LocalTranscriber.Output {
+        let flag = control ?? CancelFlag()
+        do {
+            let output = try await withTaskCancellationHandler {
+                try await shared.run(audioURL: audioURL, flag: flag)
+            } onCancel: {
+                flag.cancel()
+            }
+            try Task.checkCancellation()
+            return output
+        } catch {
+            // Conversion also uses the abort flag. Deadline expiry must never become a
+            // CancellationError that the foreground queue would immediately retry forever.
+            if flag.hasTimedOut { throw Failure.timedOut(stage: flag.stage) }
+            throw error
         }
-        try Task.checkCancellation()
-        return output
     }
 
     private func run(audioURL: URL, flag: CancelFlag) throws -> LocalTranscriber.Output {
         let isCancelled = { flag.isCancelled || Task.isCancelled }
         func checkCancelled() throws {
+            if flag.hasTimedOut { throw Failure.timedOut(stage: flag.stage) }
             if isCancelled() { throw CancellationError() }
         }
 
@@ -90,7 +141,7 @@ actor WhisperTranscriber {
         try checkCancelled()
         // Elapsed time covers audio conversion + model load + inference (the full user-visible wait).
         let started = ProcessInfo.processInfo.systemUptime
-        let samples = try Self.decodeMono16k(audioURL, isCancelled: isCancelled)
+        let samples = try Self.decodeMono16k(audioURL, control: flag)
         try checkCancelled()
         guard samples.contains(where: { $0.isFinite && abs($0) > 0.00001 }) else {
             throw LocalTranscriber.Failure.noSpeech
@@ -98,6 +149,11 @@ actor WhisperTranscriber {
         guard samples.count <= Self.maxSamples, let sampleCount = Int32(exactly: samples.count) else {
             throw Failure.audioTooLong(maxMinutes: Self.maxSamples / 16_000 / 60)
         }
+        // ponytail: cooperative limit of at least 2 min, then 12x audio duration. Native
+        // model loading/Metal graphs cannot be forcibly interrupted; wait for their return.
+        flag.setTimeLimit(max(120, Double(samples.count) / Self.sampleRate * 12))
+        try checkCancelled()
+        flag.setStage("Loading local model")
 
         var contextParams = whisper_context_default_params()
 #if targetEnvironment(simulator) || os(macOS)
@@ -134,6 +190,13 @@ actor WhisperTranscriber {
             return Unmanaged<CancelFlag>.fromOpaque(userData).takeUnretainedValue().isCancelled
         }
         params.abort_callback_user_data = Unmanaged.passUnretained(flag).toOpaque()
+        params.encoder_begin_callback = { _, _, userData in
+            guard let userData else { return false }
+            let control = Unmanaged<CancelFlag>.fromOpaque(userData).takeUnretainedValue()
+            control.setStage("Recognizing speech", nativeEncoder: true)
+            return !control.isCancelled
+        }
+        params.encoder_begin_callback_user_data = Unmanaged.passUnretained(flag).toOpaque()
 
         let code: Int32 = "ar".withCString { language -> Int32 in
             params.language = language
@@ -147,6 +210,7 @@ actor WhisperTranscriber {
         // An aborted or cancelled run is never reported as success, whatever whisper_full returned.
         try checkCancelled()
         guard code == 0 else { throw Failure.inferenceFailed(code: code) }
+        flag.setStage("Reading transcript")
 
         var segments: [String] = []
         let segmentCount = whisper_full_n_segments(context)
@@ -182,7 +246,7 @@ actor WhisperTranscriber {
     }
 
     /// Decodes AAC/M4A/etc. to Float32, 16 kHz, mono, keeping exactly the frames the converter returns.
-    private static func decodeMono16k(_ url: URL, isCancelled: () -> Bool) throws -> [Float] {
+    private static func decodeMono16k(_ url: URL, control: CancelFlag) throws -> [Float] {
         let input = ConverterInput(file: try AVAudioFile(forReading: url))
         let inFormat = input.file.processingFormat
         guard inFormat.sampleRate > 0,
@@ -191,6 +255,7 @@ actor WhisperTranscriber {
               let converter = AVAudioConverter(from: inFormat, to: outFormat) else {
             throw Failure.audioFormat("unsupported source format \(inFormat)")
         }
+        control.setTimeLimit(max(120, Double(input.file.length) / inFormat.sampleRate * 12))
         converter.downmix = true
         let inChunk: AVAudioFrameCount = 8_192
         let outCapacity = AVAudioFrameCount((Double(inChunk) * sampleRate / inFormat.sampleRate).rounded(.up)) + 1_024
@@ -198,7 +263,7 @@ actor WhisperTranscriber {
         samples.reserveCapacity(min(maxSamples, Int(Double(max(input.file.length, 0)) * sampleRate / inFormat.sampleRate) + 1_024))
 
         while true {
-            if isCancelled() { throw CancellationError() }
+            if control.isCancelled || Task.isCancelled { throw CancellationError() }
             guard let output = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: outCapacity) else {
                 throw Failure.audioFormat("could not allocate output buffer")
             }

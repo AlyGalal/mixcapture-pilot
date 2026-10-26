@@ -39,6 +39,8 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
     private(set) var activeRecord: CaptureRecord?
     private(set) var pendingStartAt: Date?
     private(set) var transcribingID: UUID?
+    private(set) var transcriptionControl: WhisperTranscriber.CancelFlag?
+    private(set) var transcriptionStopMessage: String?
     private var outcome: Status = .idle
 
     let deviceDescription: String
@@ -250,10 +252,20 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
     // MARK: Transcription
 
     func retryTranscription(_ id: UUID) {
-        guard records.first(where: { $0.id == id })?.canRetry == true else { return }
+        guard transcribingID != id, records.first(where: { $0.id == id })?.canRetry == true else { return }
         let locale = selectedLocale.rawValue
         update(id) { $0.queueTranscription(locale: locale) }
         processPendingTranscriptions()
+    }
+
+    func stopTranscription() {
+        guard let id = transcribingID, transcriptionStopMessage == nil else { return }
+        let message = "Transcription stopped. Your audio and any previous transcript are saved. Tap Transcribe again to retry."
+        transcriptionStopMessage = message
+        // Persist terminal failure BEFORE cancelling. Relaunch must not automatically retry a
+        // deliberately stopped file; background/new-recording cancellation still stays pending.
+        update(id) { $0.fail(message) }
+        transcriptionTask?.cancel()
     }
 
     /// Runs pending captures one at a time, oldest first, only while the scene is active.
@@ -271,10 +283,19 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
         guard let store, let record = records.first(where: { $0.id == id }) else { return }
         update(id) { $0.beginTranscription() }
         transcribingID = id
-        defer { transcribingID = nil }
+        transcriptionStopMessage = nil
+        let control = record.requestedLocale == PilotLocale.mixedArabicEnglish.rawValue
+            ? WhisperTranscriber.CancelFlag() : nil
+        transcriptionControl = control
+        defer {
+            transcribingID = nil
+            transcriptionControl = nil
+            transcriptionStopMessage = nil
+        }
         let locale = PilotLocale(rawValue: record.requestedLocale) ?? .arabicEgypt
         do {
-            let output = try await LocalTranscriber.transcribe(audioURL: store.audioURL(for: record), locale: locale)
+            let output = try await LocalTranscriber.transcribe(audioURL: store.audioURL(for: record), locale: locale,
+                                                              whisperControl: control)
             try Task.checkCancellation()
             update(id) {
                 $0.finishTranscription(segments: output.segments, resolvedLocale: output.resolvedLocale,
@@ -283,7 +304,14 @@ final class CaptureModel: NSObject, AVAudioPlayerDelegate, AVAudioRecorderDelega
             outcome = .saved("Local transcription complete.")
             organizePendingCaptures()
         } catch {
-            if Task.isCancelled || error is CancellationError {
+            if let message = transcriptionStopMessage {
+                update(id) { $0.fail(message) }
+                outcome = .failed(message)
+            } else if case WhisperTranscriber.Failure.timedOut = error {
+                let message = error.localizedDescription
+                update(id) { $0.fail(message) }
+                outcome = .failed(message)
+            } else if Task.isCancelled || error is CancellationError {
                 update(id) { $0.deferTranscription() }
             } else {
                 let message = error.localizedDescription

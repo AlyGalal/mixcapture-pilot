@@ -247,6 +247,8 @@ struct ModelChecks {
         check(compare.status == .failed && scalars(compare.transcriptSegments) == scalars(whisperSegments),
               "failed retry keeps current text")
         check(compare.transcriptHistory == beforeRetry.transcriptHistory, "failed retry keeps history")
+        check(!compare.recoverAfterRelaunch() && compare.status == .failed && compare.canRetry,
+              "terminal stopped or timed-out attempt waits for manual retry after relaunch")
         check(compare.engine == whisperEngine && compare.resolvedLocale == "ar",
               "failed retry keeps current engine and locale")
         check(compare.processingSeconds == 6.5 && compare.assessment == beforeRetry.assessment,

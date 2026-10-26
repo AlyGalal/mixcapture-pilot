@@ -119,9 +119,10 @@ enum LocalTranscriber {
     }
 
     /// Transcribes a finalized audio file with one locale and returns the final results verbatim.
-    static func transcribe(audioURL: URL, locale choice: PilotLocale) async throws -> Output {
+    static func transcribe(audioURL: URL, locale choice: PilotLocale,
+                           whisperControl: WhisperTranscriber.CancelFlag? = nil) async throws -> Output {
         if choice == .mixedArabicEnglish {
-            return try await WhisperTranscriber.transcribe(audioURL: audioURL)
+            return try await WhisperTranscriber.transcribe(audioURL: audioURL, control: whisperControl)
         }
         guard let resolved = await resolve(choice) else {
             throw Failure.unsupportedLocale(choice.rawValue)
