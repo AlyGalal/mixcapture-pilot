@@ -83,11 +83,20 @@ struct OrganizerAdversarialChecks {
             }
         }
         for command in commands.suffix(6).prefix(4) { review("يعني، " + command) }
-        let compound = parse("يعني ضيف لبن لقائمة المشتريات وفكرني أجيبه بكرة 5 PM")
-        check(compound.count == 2 && compound.map(\.kind) == [.shopping, .reminder] &&
-              compound.allSatisfy { !$0.requiresReview } && compound[0].title == "لبن" &&
-              compound[1].dueDate == calendar.date(from: DateComponents(year: 2026, month: 10, day: 27, hour: 17)),
+        let spokenCompound = parse("يعني ضيف لبن لقائمة المشتريات وفكرني أجيبه بكرة 5 PM")
+        check(spokenCompound.count == 2 && spokenCompound.map(\.kind) == [.shopping, .reminder] &&
+              spokenCompound.allSatisfy { !$0.requiresReview } && spokenCompound[0].title == "لبن" &&
+              spokenCompound[1].dueDate == calendar.date(from: DateComponents(year: 2026, month: 10, day: 27, hour: 17)),
               "A shopping request and an explicit reminder remain two independent actions")
+        for prefix in ["", "يعني، "] {
+            for recipe in ["Save a recipe for apple juice, don't save this",
+                           "recipe apple juice. Cancel this.",
+                           "احفظ وصفة شاي؟"] {
+                let drafts = parse(prefix + recipe)
+                check(drafts.count == 1 && drafts[0].kind == .recipe && drafts[0].requiresReview,
+                      "Recipe framing must not bypass cancellation or question checks")
+            }
+        }
 
         // Clear phrases explicitly promised by the implementation brief.
         automatic("فكرني بعد 10 دقايق أكلم أحمد", kind: .reminder, due: now.addingTimeInterval(600))
