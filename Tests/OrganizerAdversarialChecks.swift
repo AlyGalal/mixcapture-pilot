@@ -93,6 +93,24 @@ struct OrganizerAdversarialChecks {
             check(semantic(drafts) == semantic(spokenCompound),
                   "Connector spacing and commas must preserve both independent actions")
         }
+        let compoundText = "ضيف لبن لقائمة المشتريات وفكرني أجيبه بكرة 5 PM"
+        for (open, close) in [("«", "»"), ("“", "”"), ("\"", "\"")] {
+            let wrapped = open + compoundText + close + "."
+            let drafts = parse(wrapped)
+            check(semantic(drafts) == semantic(spokenCompound),
+                  "Whole-input quotation formatting must preserve compound action fields")
+            let saved = LocalItemsSnapshot().applyingOrganization(drafts, sourceID: UUID(), now: now)!.snapshot
+            check(saved.library?.count == 1 && saved.library?.first?.kind == .shopping &&
+                  saved.library?.first?.body == wrapped && saved.reminders.count == 1 &&
+                  saved.reminders.first?.sourceTranscript == wrapped && (saved.reviewQueue ?? []).isEmpty,
+                  "A pasted quoted command stores Shopping plus Reminder with the verbatim source")
+            review(open + "هل أضيف لبن لقائمة المشتريات" + close)
+            review(open + "ضيف لبن لقائمة المشتريات؟" + close)
+            review(open + "متضيفش لبن لقائمة المشتريات" + close)
+            let explicitNote = parse(open + "note: put milk on the shopping list" + close)
+            check(explicitNote.count == 1 && explicitNote[0].kind == .note,
+                  "An explicit note about a quoted command stays a note")
+        }
         let purchaseAndExpense = parse("ضيف لبن لقائمة المشتريات، و سجل مصروف 50 جنيه قهوة")
         check(purchaseAndExpense.count == 2 && purchaseAndExpense.map(\.kind) == [.shopping, .expense] &&
               purchaseAndExpense.allSatisfy { !$0.requiresReview } && purchaseAndExpense[0].title == "لبن" &&
