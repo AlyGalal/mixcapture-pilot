@@ -364,7 +364,7 @@ private enum Rx {
     static let itemSeparator = arabicItemSeparator + #"|\s+and\s+"#
     static let repeatedItem = #"\s+(?:و\s*)?(?:احط|اضيف|حط|ضيف)\s+فيها\s+"#
     static let stepSeparator = #"\s*\n+\s*|[.!?;](?=\s|$)\s*|\s+(?:ثم|then|وبعدين|بعدين|وبعد\s+كده|بعد\s+كده|بعد\s+كدا)\s+"#
-    static let segmentSeparator = #"\s*[\n;]+\s*|\s+(?=و(?:فكرني|ذكرني|فكريني|ذكريني|سجل\s+مصروف|سجلي\s+مصروف)(?![\p{L}\p{N}]))|\s+and\s+(?=(?:remind\s+me|log\s+(?:an\s+)?expense|add\s+(?:an\s+)?expense)(?![\p{L}\p{N}]))"#
+    static let segmentSeparator = #"\s*[\n;]+\s*|(?:\s*,\s*|\s+)و\s*(?=(?:فكرني|ذكرني|فكريني|ذكريني|سجل\s+مصروف|سجلي\s+مصروف)(?![\p{L}\p{N}]))|\s+and\s+(?=(?:remind\s+me|log\s+(?:an\s+)?expense|add\s+(?:an\s+)?expense)(?![\p{L}\p{N}]))"#
 
     static let recipeHead = #"^\s*(?:(?:سجل|سجلي|احفظ|ضيف|اكتب|save|add|new)\s+)?(?:(?:a|the)\s+)?(?:وصفه|recipe)(?![\p{L}\p{N}])(?:\s+for(?![\p{L}\p{N}]))?"#
     static let ingredientsMarker = word(#"المكونات|مكونات|ingredients"#) + #"\s*:?"#

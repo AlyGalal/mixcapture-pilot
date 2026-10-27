@@ -93,6 +93,13 @@ struct OrganizerAdversarialChecks {
             check(semantic(drafts) == semantic(spokenCompound),
                   "Connector spacing and commas must preserve both independent actions")
         }
+        let purchaseAndExpense = parse("ضيف لبن لقائمة المشتريات، و سجل مصروف 50 جنيه قهوة")
+        check(purchaseAndExpense.count == 2 && purchaseAndExpense.map(\.kind) == [.shopping, .expense] &&
+              purchaseAndExpense.allSatisfy { !$0.requiresReview } && purchaseAndExpense[0].title == "لبن" &&
+              parseAmount(purchaseAndExpense[1].amountText) == 5000,
+              "The shared spaced connector also separates explicit expense commands")
+        review("ضيف لبن لقائمة المشتريات، و متفكرنيش أجيبه بكرة 5 PM")
+        review("ضيف لبن لقائمة المشتريات، و فكرني أجيبه بكرة 5 PM؟")
         for prefix in ["", "يعني، "] {
             for recipe in ["Save a recipe for apple juice, don't save this",
                            "recipe apple juice. Cancel this.",
