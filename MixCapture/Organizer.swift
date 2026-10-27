@@ -154,11 +154,11 @@ enum OrganizerParser {
         if doc.has(#"^\s*(?:هل|لو|اذا|if|did|was|were|have|has|what|why|when|how|is|are|do|does|should)(?![\p{L}])"#) {
             return [parser.review(.note, doc, text, "This may be a question or possibility. It was not executed as a command.")]
         }
-        if let recipe = parser.recipe(doc, text) { return [recipe] }
         if doc.has(Rx.negation) || doc.has(#"\?[\s\p{P}]*$"#) {
-            return [parser.review(parser.classify(doc)?.kind ?? .note, doc, text,
-                                  "This contains a negation or correction. Review the full source.")]
+            return [parser.review(doc.has(Rx.recipeHead) ? .recipe : (parser.classify(doc)?.kind ?? .note), doc, text,
+                                  "This contains a negation, question or correction. Review the full source.")]
         }
+        if let recipe = parser.recipe(doc, text) { return [recipe] }
         if doc.has(Rx.modificationRequest) || doc.has(Rx.developmentRequest) {
             return [parser.review(parser.classify(doc)?.kind ?? .note, doc, text,
                                   "This requests an update or idea development. Review the intended action before saving.")]
