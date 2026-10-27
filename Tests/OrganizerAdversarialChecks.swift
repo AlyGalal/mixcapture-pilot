@@ -88,6 +88,11 @@ struct OrganizerAdversarialChecks {
               spokenCompound.allSatisfy { !$0.requiresReview } && spokenCompound[0].title == "لبن" &&
               spokenCompound[1].dueDate == calendar.date(from: DateComponents(year: 2026, month: 10, day: 27, hour: 17)),
               "A shopping request and an explicit reminder remain two independent actions")
+        for connector in [" وفكرني ", " و فكرني ", "،وفكرني ", "، و فكرني "] {
+            let drafts = parse("ضيف لبن لقائمة المشتريات" + connector + "أجيبه بكرة 5 PM")
+            check(semantic(drafts) == semantic(spokenCompound),
+                  "Connector spacing and commas must preserve both independent actions")
+        }
         for prefix in ["", "يعني، "] {
             for recipe in ["Save a recipe for apple juice, don't save this",
                            "recipe apple juice. Cancel this.",
