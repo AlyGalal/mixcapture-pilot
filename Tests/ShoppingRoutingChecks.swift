@@ -28,6 +28,25 @@ struct ShoppingRoutingChecks {
             check(drafts.count == 1 && drafts[0].kind == .shopping && drafts[0].title == title &&
                   drafts[0].collection == "Groceries" && !drafts[0].requiresReview, "Mixed list routing: \(text)")
         }
+        // A spoken lead-in is not part of the requested action; keep the raw source intact.
+        for prefix in ["يعني ", "يعني، ", "يعني: ", "يعني،", "يعني يعني "] {
+            let source = prefix + "عايز احط ال red marker في ال shopping list."
+            let drafts = parse(source)
+            let snapshot = LocalItemsSnapshot().applyingOrganization(drafts, sourceID: UUID(), now: now)!.snapshot
+            let reloaded = try JSONDecoder().decode(LocalItemsSnapshot.self, from: JSONEncoder().encode(snapshot))
+            check(drafts.count == 1 && drafts[0].kind == .shopping && !drafts[0].requiresReview &&
+                  reloaded.library?.first?.kind == .shopping && reloaded.library?.first?.body == source &&
+                  (reloaded.reviewQueue ?? []).isEmpty,
+                  "Spoken lead-in must store and reload Shopping: \(source)")
+        }
+        for text in ["يعني هل اضيف red marker في ال shopping list.",
+                     "يعني، مش عايز احط red marker في ال shopping list.",
+                     "يعني عايز احط red marker في ال shopping list؟"] {
+            check(parse(text).allSatisfy(\.requiresReview), "Spoken lead-ins must not bypass safety gates")
+        }
+        let description = parse("يعني شفت shopping list في الدرج.")
+        check(description.count == 1 && description[0].kind == .note,
+              "Removing a spoken lead-in does not turn a description into an add command")
         // Speech engines add sentence punctuation; this must not change an unnamed destination.
         for command in ["عايز احط red marker في ال shopping list", "ضيف red marker لقائمة المشتريات"] {
             for ending in [".", ",", "،", "!", ":", "؛", "…"] {
