@@ -143,9 +143,13 @@ enum OrganizerParser {
     static func parse(_ text: String, now: Date = Date(), calendar: Calendar = .current) -> [OrganizationDraft] {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [] }
         let parser = PhraseParser(now: now, calendar: calendar)
-        let doc = Doc(text)
+        var doc = Doc(text)
         if text.utf16.count > 100_000 {
             return [parser.review(.note, doc, text, "This text is too long to organize automatically. Review it manually.")]
+        }
+        // Ignore a bounded spoken lead-in for matching, before questions and safety checks.
+        if let lead = doc.first(#"^\s*(?:يعني(?![\p{L}\p{N}])[\s,:;]*)+"#) {
+            doc = doc.removing([lead.range])
         }
         if doc.has(#"^\s*(?:هل|لو|اذا|if|did|was|were|have|has|what|why|when|how|is|are|do|does|should)(?![\p{L}])"#) {
             return [parser.review(.note, doc, text, "This may be a question or possibility. It was not executed as a command.")]
