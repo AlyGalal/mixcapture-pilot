@@ -1,0 +1,95 @@
+name: Publish verified experimental build 9
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Verify complete checks and publish exact artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          source='68a5172bd92994db6b57ba6a3c9eaf090accc863'
+          for run in 40450258212 40450258399; do
+            test "$(gh run view "$run" --json conclusion --jq '.conclusion')" = 'success'
+            test "$(gh run view "$run" --json headSha --jq '.headSha')" = "$source"
+          done
+          gh run download 40450258212 --name mixcapture-unsigned --dir artifact
+          gh run download 40450258399 --name daily-scenario-audit --dir audit
+          cd artifact
+          sed 's@build/@@' SHA256SUMS.txt | sha256sum -c -
+          python3 - <<'PYCODE'
+          import zipfile, plistlib, hashlib, json
+          with zipfile.ZipFile('MixCapture-unsigned.ipa') as z:
+              names=z.namelist()
+              info=plistlib.loads(z.read('Payload/MixCapture.app/Info.plist'))
+              assert info['CFBundleVersion']=='9'
+              assert info['CFBundleIdentifier']=='com.mixcapture.pilot'
+              assert info['CFBundleDevelopmentRegion']=='en'
+              assert info['CFBundleSupportedPlatforms']==['iPhoneOS']
+              assert not any(n.lower().endswith(('.wav','.m4a','.mp3','.aac')) for n in names)
+              assert len([n for n in names if n.endswith('.bin')])==1
+              with z.open('Payload/MixCapture.app/ggml-codeswitch-medium-q8_0.bin') as f:
+                  assert hashlib.file_digest(f,'sha256').hexdigest()=='42ad913750c5487f8fb7bb9d45033fc06443d59d387c797b02632f639d46fbdd'
+          with open('../audit/results.json') as f:
+              report=json.load(f)
+          assert report['schema_version']==2 and len(report['cases'])==100
+          assert all(not case['executed_actions'] for case in report['cases'])
+          assert sum(report['summary'].values())==100
+          print('Verified build 9, unchanged pinned model, no packaged audio, and synthetic audit.')
+          PYCODE
+          cp ../audit/report.html Daily-life-100-Build9.html
+          cp ../audit/results.json Daily-life-100-results-Build9.json
+          cat > release-notes.txt <<'NOTES'
+          Build 9 matches explicit commands after a bounded spoken Arabic lead-in. The normalization is shared by every organizer type and runs before safety gates; original source text stays untouched. Recipe cancellation/question checks now precede recipe saving. Recipes containing negation are conservatively held for review, including negative cooking instructions.
+
+          Native regression checks reproduced the preceding failure, then passed 58 synthetic shopping cases with persisted-state checks and 177 source cases covering all supported action fields, alternate prefix punctuation, compound commands, questions, conditions and negation. The 100-scenario audit still documents remaining capability and interpretation gaps; this is not general language understanding. The speech model and decoding settings are unchanged.
+
+          Existing saved items retain their classification until explicitly edited. Update the same installed app using the same signing account without deleting it, then verify 1.0 (build 9) in Settings. Test with a fresh recording. Installer success alone does not prove on-device voice routing. No personal recordings or transcripts are included.
+          NOTES
+          mv MixCapture-unsigned.ipa MixCapture-Build9.ipa
+          sha256sum MixCapture-Build9.ipa > SHA256SUMS.txt
+          gh release create pilot-v0.9.0 --target "$source" --title 'MixCapture build 9 — spoken commands and safety checks' --notes-file release-notes.txt --prerelease --draft
+          gh release upload pilot-v0.9.0 MixCapture-Build9.ipa SHA256SUMS.txt build-info.txt Daily-life-100-Build9.html Daily-life-100-results-Build9.json
+          gh release edit pilot-v0.9.0 --draft=false
+      - name: Make a small exact binary delta for the existing Build 8 package
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh run download 40400929087 --name mixcapture-unsigned --dir base
+          mkdir -p next delta
+          cp artifact/MixCapture-Build9.ipa next/MixCapture-unsigned.ipa
+          python3 - <<'PYCODE'
+          import hashlib, json
+          from pathlib import Path
+          def sha(p):
+              with open(p,'rb') as f: return hashlib.file_digest(f,'sha256').hexdigest()
+          base=sha('base/MixCapture-unsigned.ipa')
+          assert base=='1dbd179f203c51a47acd37a52058f06eaa9b543bcdf76454494aac7be92a504a'
+          data={'base_sha256':base,'target_sha256':sha('next/MixCapture-unsigned.ipa'),'source':'68a5172bd92994db6b57ba6a3c9eaf090accc863','build':9}
+          Path('delta/delta.json').write_text(json.dumps(data,indent=2)+'\n')
+          PYCODE
+          set +e
+          git -c core.bigFileThreshold=2g diff --no-index --binary --full-index --src-prefix=a/ --dst-prefix=b/ base/MixCapture-unsigned.ipa next/MixCapture-unsigned.ipa > delta/Build9.patch
+          diff_status=$?
+          set -e
+          test "$diff_status" = 1
+          test "$(wc -c < delta/Build9.patch)" -lt 33554432
+          grep -q '^GIT binary patch' delta/Build9.patch
+          gh release upload pilot-v0.9.0 delta/Build9.patch delta/delta.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build9-exact-delta
+          path: delta/
+          if-no-files-found: error
+          retention-days: 14
