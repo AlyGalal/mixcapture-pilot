@@ -46,6 +46,49 @@ struct OrganizerAdversarialChecks {
             check(drafts.allSatisfy(\.requiresReview), "Unsafe automatic interpretation: \(text)")
         }
 
+        // The same natural lead-in must preserve ALL supported actions and compound payloads,
+        // rather than being patched into the shopping grammar alone. No real side effects.
+        let commands = [
+            "ضيف red marker لقائمة المشتريات.",
+            "دفعت 50 جنيه قهوة",
+            "فكرني بكرة 10 AM أبعت التقرير",
+            "ضيف مهمة review budget لمشروع Home",
+            "حط في التقويم قراءة كتاب بكرة الساعة عشرة الصبح لمدة 30 دقيقة",
+            "ملاحظة لمشروع Home: راجع API v2",
+            "احفظ وصفة شاي: المكونات: ماء؛ الخطوات: سخن الماء",
+            "ضيف لبن لقائمة المشتريات وفكرني أجيبه بكرة 5 PM",
+            "دفعت 50 جنيه قهوة؛ ضيف لبن لقائمة المشتريات",
+            "فكرني بكرة 5 PM أجيب لبن؛ ضيف لبن لقائمة المشتريات",
+            "هل اضيف لبن لقائمة المشتريات",
+            "لو ضفت لبن لقائمة المشتريات",
+            "if I add milk to shopping list Groceries",
+            "مش عايز اضيف لبن لقائمة المشتريات",
+            "note: the shopping list is in the drawer.",
+            "\"عايز احط red marker في ال shopping list\"",
+        ]
+        func semantic(_ drafts: [OrganizationDraft]) -> [OrganizationDraft] {
+            drafts.map { original in
+                var draft = original
+                draft.id = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+                draft.body = "" // only IDs and the verbatim source differ across paraphrases
+                return draft
+            }
+        }
+        for command in commands {
+            let expected = parse(command)
+            for prefix in ["يعني ", "يعني، ", "يعني: ", "يعني،", "يعني يعني "] {
+                let actual = parse(prefix + command)
+                check(semantic(actual) == semantic(expected),
+                      "Spoken prefix changed action fields, composition or safety: \(prefix + command)")
+            }
+        }
+        for command in commands.suffix(6).prefix(4) { review("يعني، " + command) }
+        let compound = parse("يعني ضيف لبن لقائمة المشتريات وفكرني أجيبه بكرة 5 PM")
+        check(compound.count == 2 && compound.map(\.kind) == [.shopping, .reminder] &&
+              compound.allSatisfy { !$0.requiresReview } && compound[0].title == "لبن" &&
+              compound[1].dueDate == calendar.date(from: DateComponents(year: 2026, month: 10, day: 27, hour: 17)),
+              "A shopping request and an explicit reminder remain two independent actions")
+
         // Clear phrases explicitly promised by the implementation brief.
         automatic("فكرني بعد 10 دقايق أكلم أحمد", kind: .reminder, due: now.addingTimeInterval(600))
         automatic("remind me in 20 minutes to call Sam", kind: .reminder, due: now.addingTimeInterval(1200))
