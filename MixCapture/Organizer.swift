@@ -147,9 +147,16 @@ enum OrganizerParser {
         if text.utf16.count > 100_000 {
             return [parser.review(.note, doc, text, "This text is too long to organize automatically. Review it manually.")]
         }
-        // Ignore a bounded spoken lead-in for matching, before questions and safety checks.
-        if let lead = doc.first(#"^\s*(?:يعني(?![\p{L}\p{N}])[\s,:;]*)+"#) {
-            doc = doc.removing([lead.range])
+        // Matching only: keep the original body, and run every safety gate after framing.
+        // ponytail: two framing passes; deeper nesting stays unmatched until a real case needs it.
+        for _ in 0..<2 {
+            if let lead = doc.first(#"^\s*(?:يعني(?![\p{L}\p{N}])[\s,:;]*)+"#) {
+                doc = doc.removing([lead.range])
+            }
+            if let envelope = doc.first(#"^\s*(?:«([\s\S]*)»|“([\s\S]*)”|"([\s\S]*)")\s*\.?\s*$"#),
+               let inner = (1...3).compactMap({ doc.group(envelope, $0) }).first {
+                doc = doc.sub(from: inner.location, to: NSMaxRange(inner))
+            }
         }
         if doc.has(#"^\s*(?:هل|لو|اذا|if|did|was|were|have|has|what|why|when|how|is|are|do|does|should)(?![\p{L}])"#) {
             return [parser.review(.note, doc, text, "This may be a question or possibility. It was not executed as a command.")]
